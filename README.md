@@ -51,3 +51,11 @@ formula = 0,1,2
 Photoshop formula was removed because of discontinuity of local contrast.
 
 Formulas are explained here: https://en.wikipedia.org/wiki/Blend_modes
+
+Usage AviSynth:
+Softlight() same as SoftLight(0,0) same as SoftLight(mode=0,formula=0)
+Usage VapourSynth:
+video = core.Argaricolm.Softlight(video) or core.Argaricolm.Softlight(video,mode=0,formula=0)
+
+Also as a small bonus this filter has:
+Mode 10 - Grayscale video (sets U & V planes to 128)
