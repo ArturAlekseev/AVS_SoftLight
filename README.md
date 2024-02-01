@@ -28,25 +28,39 @@ So first mode will neutralize only colors (hue + saturation) in frame and not br
 Also keep in mind that you need to remove black bars in video for correct processing (if there are any). Or they will affect average sum.
 
 1 mode:
-Same as first. But plane S is also boosted (softlight is done for each pixel with itself).
+Same as mode 0 but planes S & V restored to their original values. So this mode only normalizes lightness/brightness and do not changes colors.
 
 2 mode:
-Same as first but without brightness restoration. Use it if you want to make brigtness also average (makes dark frames brighter).
+Same as mode 0. But plane S is also boosted (softlight is done for each pixel with itself).
 
 3 mode:
-Same as mode 3 but each of RGB planes are boosted using softlight.
+Same as first but without brightness restoration. Use it if you want to make brigtness also average (makes dark frames brighter).
 
 4 mode:
-YUV->RGB->softlight each RGB plane with itself->YUV (color/contrast boost)
+Same as mode 3 but each of RGB planes are boosted using softlight.
 
 5 mode:
+YUV->RGB->softlight each RGB plane with itself->YUV (color/contrast boost)
+
+6 mode:
 YUV->RGB->HSV->boost S->RGB->YUV
+
+8 mode:
+TV to PC color range conversion (use it on videos where you see no total black and only grays).
+
+10 mode:
+Grayscale.
+For RGB32 - this mode uses RGB -> YUV444 -> RGB cuda conversion. U & V planes are set to 128.
+For YUV - just U & V planes are set to 128 without cuda.
 
 You can use 3 different softlight formulas:
 formula = 0,1,2
 0 - pegtop
 1 - illusions.hu
 2 - W3C
+
+In my opinion - pegtop fomula is the best.
+Also mode 1 & mode 3 are my favourite.
 
 Photoshop formula was removed because of discontinuity of local contrast.
 
@@ -59,7 +73,3 @@ Softlight() same as SoftLight(0,0) same as SoftLight(mode=0,formula=0)
 Usage VapourSynth:
 
 video = core.Argaricolm.Softlight(video) or core.Argaricolm.Softlight(video,mode=0,formula=0)
-
-Also as a small bonus this filter has:
-
-Mode 10 - Grayscale video (sets U & V planes to 128)
