@@ -28,7 +28,7 @@ So first mode will neutralize only colors (hue + saturation) in frame and not br
 Also keep in mind that you need to remove black bars in video for correct processing (if there are any). Or they will affect average sum.
 
 1 mode:
-Same as mode 0 but planes S & V restored to their original values. So this mode only normalizes lightness/brightness and do not changes colors.
+Same as mode 0 but planes S & V restored to their original values. So this mode only normalizes lightness/brightness and does not change colors.
 
 2 mode:
 Same as mode 0. But plane S is also boosted (softlight is done for each pixel with itself).

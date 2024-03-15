@@ -24,7 +24,6 @@
 			else if (r >= clampmax) s[i] = clampmax; else s[i] = (__int8) (r + 0.5);
 		}
 	}
-
 	__global__ void KernelSoftlightFC_pegtop(unsigned char* s, Npp32f b, int clampmin, int clampmax, int length)
 	{
 		int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -35,7 +34,6 @@
 			else if (r >= clampmax) s[i] = clampmax; else s[i] = (__int8)(r + 0.5);
 		}
 	}
-
 	__global__ void KernelSoftlightFC_illusionshu(unsigned char* s, Npp32f b, int clampmin, int clampmax, int length)
 	{
 		int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -46,7 +44,6 @@
 			else if (r >= clampmax) s[i] = clampmax; else s[i] = (__int8)(r + 0.5);
 		}
 	}
-
 	__global__ void KernelSoftlightF_W3C(Npp32f* s, Npp32f* d, Npp32f clampmin, Npp32f clampmax, int length)
 	{
 		int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -67,7 +64,6 @@
 			else if (r >= clampmax) s[i] = clampmax; else s[i] = r;
 		}
 	}
-
 	__global__ void KernelSoftlightF_pegtop(Npp32f* s, Npp32f* d, Npp32f clampmin, Npp32f clampmax, int length)
 	{
 		int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -79,7 +75,6 @@
 			else if (r >= clampmax) s[i] = clampmax; else s[i] = r;
 		}
 	}
-
 	__global__ void KernelSoftlightF_illusionshu(Npp32f* s, Npp32f* d, Npp32f clampmin, Npp32f clampmax, int length)
 	{
 		int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -91,7 +86,6 @@
 			else if (r >= clampmax) s[i] = clampmax; else s[i] = r;
 		}
 	}
-	
 	__global__ void KernelSoftlight_W3C(unsigned char* s, unsigned char* d, int clampmin, int clampmax, int length)
 	{
 		int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -112,7 +106,6 @@
 			else if (r >= clampmax) s[i] = clampmax; else s[i] = (__int8)(r + 0.5);
 		}
 	}
-
 	__global__ void KernelSoftlight_pegtop(unsigned char* s, unsigned char* d, int clampmin, int clampmax, int length)
 	{
 		int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -124,7 +117,6 @@
 			else if (r >= clampmax) s[i] = clampmax; else s[i] = (__int8)(r + 0.5);
 		}
 	}
-
 	__global__ void KernelSoftlight_illusionshu(unsigned char* s, unsigned char* d, int clampmin, int clampmax, int length)
 	{
 		int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -254,7 +246,6 @@
 		H[i] = h;
 		V[i] = v;
 	}
-
 	__global__ void KernelRGB2HSV_HS(unsigned char* R, unsigned char* G, unsigned char* B, Npp32f* H, Npp32f* S, int length)
 	{
 		int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -296,7 +287,6 @@
 		H[i] = h;
 		S[i] = s;
 	}
-
 	__global__ void KernelRGB2HSV_SV(unsigned char* R, unsigned char* G, unsigned char* B, Npp32f* S, Npp32f* V, int length)
 	{
 		int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -330,7 +320,6 @@
 		S[i] = s;
 		V[i] = v;
 	}
-
 	__global__ void KernelRGB2HSV_V(unsigned char* R, unsigned char* G, unsigned char* B, Npp32f* V, int length)
 	{
 		int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -343,7 +332,6 @@
 		v = fmaxf(double_r, fmaxf(double_g, double_b));
 		V[i] = v;
 	}
-
 	__global__ void KernelHSV2RGB(Npp32f* H, Npp32f* S, Npp32f* V, unsigned char* R, unsigned char* G, unsigned char* B, int length)
 	{
 		int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -413,6 +401,7 @@
 	}
 
 //RGB<->BGR functions
+
 	__global__ void KernelRGBtoBGR(unsigned char* planeR, unsigned char* planeG, unsigned char* planeB, unsigned char* planeBGR, int width, int height, int Rpitch, int BGRpitch)
 	{
 		int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -432,7 +421,7 @@
 		planeBGR[pixeloffset] = B;
 		planeBGR[pixeloffset + 1] = G;
 		planeBGR[pixeloffset + 2] = R;
-		planeBGR[pixeloffset + 3] = 0;
+		planeBGR[pixeloffset + 3] = 255;
 	}
 	__global__ void KernelBGRtoRGB(unsigned char* planeR, unsigned char* planeG, unsigned char* planeB, unsigned char* planeBGR, int width, int height, int Rpitch, int BGRpitch)
 	{
@@ -457,7 +446,6 @@
 	}
 
 //RGB<->YUV
-
 	__global__ void KernelYUV2RGB(unsigned char* planeY, unsigned char* planeU, unsigned char* planeV, unsigned char* planeR, unsigned char* planeG, unsigned char* planeB, int width, int height, int Ypitch)
 	{
 		int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -485,7 +473,6 @@
 		planeG[row * width + position] = G;
 		planeB[row * width + position] = B;
 	}
-
 	__global__ void KernelYUV420toRGB(unsigned char* planeY, unsigned char* planeU, unsigned char* planeV, unsigned char* planeR, unsigned char* planeG, unsigned char* planeB, int width, int height, int Ypitch, int Upitch)
 	{
 		int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -513,7 +500,6 @@
 		planeG[row * width + position] = G;
 		planeB[row * width + position] = B;
 	}
-
 	__global__ void KernelRGB2YUV(unsigned char* planeY, unsigned char* planeU, unsigned char* planeV, unsigned char* planeR, unsigned char* planeG, unsigned char* planeB, int width, int height, int Ypitch)
 	{
 		int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -534,7 +520,6 @@
 		planeU[row * Ypitch + position] = (unsigned char)U;
 		planeV[row * Ypitch + position] = (unsigned char)V;
 	}
-
 	__global__ void KernelUVShrink(unsigned char* planeI, unsigned char* planeO, int width, int height, int pitchI, int pitchO, int size)
 	{
 		int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -570,7 +555,6 @@
 		}
 		if (tid == 0) output[blockIdx.x] = sdata[0];
 	}
-
 	__global__ void reduceFloat(Npp32f* input, Npp64f* output, int length) {
 		extern __shared__ Npp64f sdatafloat[];
 		unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -587,7 +571,6 @@
 		}
 		if (tid == 0) output[blockIdx.x] = sdatafloat[0];
 	}
-
 	__global__ void reduceFloat(Npp64f* input, Npp64f* output, int length) {
 		extern __shared__ Npp64f sdatafloat[];
 		unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -604,7 +587,6 @@
 		}
 		if (tid == 0) output[blockIdx.x] = sdatafloat[0];
 	}
-
 	__global__ void reduceInt(unsigned int * input, unsigned int * output, int length) {
 		extern __shared__ unsigned int sdata[];
 		unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -621,7 +603,6 @@
 		}
 		if (tid == 0) output[blockIdx.x] = sdata[0];
 	}
-
 	void CudaSumNV(unsigned char* buf, int length, unsigned long long* result, unsigned int maxthreads) {
 		int blocks = length / maxthreads;
 		if (length % maxthreads > 0) blocks += 1;
@@ -650,7 +631,6 @@
 			cudaFree(reducelast);
 		}
 	}
-
 	void CudaSumNV(Npp32f* buf, int length, Npp64f* result, unsigned int maxthreads) {
 		int blocks = length / maxthreads;
 		if (length % maxthreads > 0) blocks += 1;
@@ -700,8 +680,6 @@
 			buf[i] = c;
 		}
 	}
-
-
 	int blocks(int from, int threads) {
 		int result = from / threads;
 		if (from % threads > 0) result += 1;
@@ -710,10 +688,7 @@
 
 //Main functions
 
-	void CudaNeutralizeRGB32(unsigned char* plane, int planeheight, int planewidth, int planepitch, int threads, int type, int formula) {
-		
-		int bgrLength = planeheight * planepitch;
-		int bgrblocks = blocks(bgrLength, threads);
+	void CudaNeutralizeRGB(unsigned char* planeR, unsigned char* planeG, unsigned char* planeB, int planeheight, int planewidth, int planepitch, int threads, int type, int formula) {
 
 		int planeYlength = planeheight * planewidth;
 		int Yblocks = blocks(planeYlength, threads);
@@ -721,13 +696,13 @@
 		unsigned char* planeRnv; cudaMalloc(&planeRnv, Yblocks * threads);
 		unsigned char* planeGnv; cudaMalloc(&planeGnv, Yblocks * threads);
 		unsigned char* planeBnv; cudaMalloc(&planeBnv, Yblocks * threads);
-		unsigned char* planeBGRnv; cudaMalloc(&planeBGRnv, bgrblocks * threads);
 
 		int hsvsize = blocks(planeYlength * sizeof(Npp32f), threads) * threads;
 
-		cudaMemcpy(planeBGRnv, plane, bgrLength, cudaMemcpyHostToDevice);
-		KernelBGRtoRGB <<<bgrblocks, threads>>> (planeRnv, planeGnv, planeBnv, planeBGRnv, planewidth, planeheight, planewidth, planepitch);
-		
+		cudaMemcpy(planeRnv, planeR, planeYlength, cudaMemcpyHostToDevice);
+		cudaMemcpy(planeGnv, planeG, planeYlength, cudaMemcpyHostToDevice);
+		cudaMemcpy(planeBnv, planeB, planeYlength, cudaMemcpyHostToDevice);
+
 		Npp32f* planeHSVo_Hnv;
 		Npp32f* planeHSVo_Snv;
 		Npp32f* planeHSVo_Vnv;
@@ -748,7 +723,7 @@
 			cudaMalloc(&planeHSV_Hnv, hsvsize);
 			cudaMalloc(&planeHSV_Snv, hsvsize);
 			cudaMalloc(&planeHSVo_Vnv, hsvsize);
-			KernelRGB2HSV_V <<<Yblocks, threads >> > (planeRnv, planeGnv, planeBnv, planeHSVo_Vnv, planeYlength); //make original Volume plane
+			KernelRGB2HSV_V <<<Yblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeHSVo_Vnv, planeYlength); //make original Volume plane
 		}
 
 		unsigned long long Rsum = 0, Gsum = 0, Bsum = 0;
@@ -775,9 +750,9 @@
 			}
 			case 1: //illusions.hu
 			{
-				KernelSoftlightFC_illusionshu <<<Yblocks, threads >> > (planeRnv, (float)Rsum / 255, 0, 255, planeYlength);
-				KernelSoftlightFC_illusionshu <<<Yblocks, threads >> > (planeGnv, (float)Gsum / 255, 0, 255, planeYlength);
-				KernelSoftlightFC_illusionshu <<<Yblocks, threads >> > (planeBnv, (float)Bsum / 255, 0, 255, planeYlength);
+				KernelSoftlightFC_illusionshu <<<Yblocks, threads >>> (planeRnv, (float)Rsum / 255, 0, 255, planeYlength);
+				KernelSoftlightFC_illusionshu <<<Yblocks, threads >>> (planeGnv, (float)Gsum / 255, 0, 255, planeYlength);
+				KernelSoftlightFC_illusionshu <<<Yblocks, threads >>> (planeBnv, (float)Bsum / 255, 0, 255, planeYlength);
 				break;
 			}
 			case 2: //W3C
@@ -790,29 +765,29 @@
 
 		if (type == 0 || type == 2)
 		{
-			KernelRGB2HSV_HS << <Yblocks, threads >> > (planeRnv, planeGnv, planeBnv, planeHSV_Hnv, planeHSV_Snv, planeYlength); //make Hue & Saturation planes from processed RGB
+			KernelRGB2HSV_HS <<<Yblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeHSV_Hnv, planeHSV_Snv, planeYlength); //make Hue & Saturation planes from processed RGB
 		}
 		else if (type == 1)
 		{
-			KernelRGB2HSV_V << <Yblocks, threads >> > (planeRnv, planeGnv, planeBnv, planeHSV_Vnv, planeYlength);
+			KernelRGB2HSV_V <<<Yblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeHSV_Vnv, planeYlength);
 		}
 
 		if (type == 2) {
 			switch (formula) {
-			case 0: //pegtop
-			{
-				KernelSoftlightF_pegtop <<<Yblocks, threads >> > (planeHSV_Snv, planeHSV_Snv, 0.0, 1.0, planeYlength);
-				break;
-			}
-			case 1: //illusions.hu
-			{
-				KernelSoftlightF_illusionshu <<<Yblocks, threads >> > (planeHSV_Snv, planeHSV_Snv, 0.0, 1.0, planeYlength);
-				break;
-			}
-			case 2: //W3C
-			{
-				KernelSoftlightF_W3C <<<Yblocks, threads >> > (planeHSV_Snv, planeHSV_Snv, 0.0, 1.0, planeYlength);
-			}
+				case 0: //pegtop
+				{
+					KernelSoftlightF_pegtop <<<Yblocks, threads >>> (planeHSV_Snv, planeHSV_Snv, 0.0, 1.0, planeYlength);
+					break;
+				}
+				case 1: //illusions.hu
+				{
+					KernelSoftlightF_illusionshu <<<Yblocks, threads >>> (planeHSV_Snv, planeHSV_Snv, 0.0, 1.0, planeYlength);
+					break;
+				}
+				case 2: //W3C
+				{
+					KernelSoftlightF_W3C <<<Yblocks, threads >>> (planeHSV_Snv, planeHSV_Snv, 0.0, 1.0, planeYlength);
+				}
 			}
 		}
 
@@ -825,14 +800,13 @@
 			KernelHSV2RGB <<<Yblocks, threads >>> (planeHSVo_Hnv, planeHSVo_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, planeYlength);
 		}
 
-		KernelRGBtoBGR <<<Yblocks, threads>>> (planeRnv, planeGnv, planeBnv, planeBGRnv, planewidth, planeheight, planewidth, planepitch);
-
-		cudaMemcpy(plane, planeBGRnv, bgrLength, cudaMemcpyDeviceToHost);
+		cudaMemcpy(planeR, planeRnv, planeYlength, cudaMemcpyDeviceToHost);
+		cudaMemcpy(planeG, planeGnv, planeYlength, cudaMemcpyDeviceToHost);
+		cudaMemcpy(planeB, planeBnv, planeYlength, cudaMemcpyDeviceToHost);
 
 		cudaFree(planeRnv);
 		cudaFree(planeGnv);
 		cudaFree(planeBnv);
-		cudaFree(planeBGRnv);
 
 		if (type == 1)
 		{
@@ -847,24 +821,20 @@
 			cudaFree(planeHSV_Snv);
 		}
 	}
-
-	void CudaNeutralizeRGB32withLight(unsigned char* plane, int planeheight, int planewidth, int planepitch, int threads, int type, int formula)
+	void CudaNeutralizeRGBwithLight(unsigned char* planeR, unsigned char* planeG, unsigned char* planeB, int planeheight, int planewidth, int planepitch, int threads, int type, int formula)
 	{
-		int bgrLength = planeheight * planepitch;
-		int bgrblocks = blocks(bgrLength, threads);
-
 		int planeYlength = planeheight * planewidth;
 		int Yblocks = blocks(planeYlength, threads);
 
 		unsigned char* planeRnv; cudaMalloc(&planeRnv, Yblocks * threads);
 		unsigned char* planeGnv; cudaMalloc(&planeGnv, Yblocks * threads);
 		unsigned char* planeBnv; cudaMalloc(&planeBnv, Yblocks * threads);
-		unsigned char* planeBGRnv; cudaMalloc(&planeBGRnv, bgrblocks * threads);
 
 		int hsvsize = blocks(planeYlength * sizeof(Npp32f), threads) * threads;
 
-		cudaMemcpy(planeBGRnv, plane, bgrLength, cudaMemcpyHostToDevice);
-		KernelBGRtoRGB << <bgrblocks, threads >> > (planeRnv, planeGnv, planeBnv, planeBGRnv, planewidth, planeheight, planewidth, planepitch);
+		cudaMemcpy(planeRnv, planeR, planeYlength, cudaMemcpyHostToDevice);
+		cudaMemcpy(planeGnv, planeG, planeYlength, cudaMemcpyHostToDevice);
+		cudaMemcpy(planeBnv, planeB, planeYlength, cudaMemcpyHostToDevice);
 
 		unsigned long long Rsum = 0, Gsum = 0, Bsum = 0;
 
@@ -909,28 +879,319 @@
 			switch (formula) {
 				case 0: //pegtop
 				{
-					KernelSoftlight_pegtop << <Yblocks, threads >> > (planeRnv, planeRnv, 0, 255, planeYlength);
-					KernelSoftlight_pegtop << <Yblocks, threads >> > (planeGnv, planeGnv, 0, 255, planeYlength);
-					KernelSoftlight_pegtop << <Yblocks, threads >> > (planeBnv, planeBnv, 0, 255, planeYlength);
+					KernelSoftlight_pegtop <<<Yblocks, threads >>> (planeRnv, planeRnv, 0, 255, planeYlength);
+					KernelSoftlight_pegtop <<<Yblocks, threads >>> (planeGnv, planeGnv, 0, 255, planeYlength);
+					KernelSoftlight_pegtop <<<Yblocks, threads >>> (planeBnv, planeBnv, 0, 255, planeYlength);
 					break;
 				}
 				case 1: //illusions.hu
 				{
-					KernelSoftlight_illusionshu << <Yblocks, threads >> > (planeRnv, planeRnv, 0, 255, planeYlength);
-					KernelSoftlight_illusionshu << <Yblocks, threads >> > (planeGnv, planeGnv, 0, 255, planeYlength);
-					KernelSoftlight_illusionshu << <Yblocks, threads >> > (planeBnv, planeBnv, 0, 255, planeYlength);
+					KernelSoftlight_illusionshu <<<Yblocks, threads >>> (planeRnv, planeRnv, 0, 255, planeYlength);
+					KernelSoftlight_illusionshu <<<Yblocks, threads >>> (planeGnv, planeGnv, 0, 255, planeYlength);
+					KernelSoftlight_illusionshu <<<Yblocks, threads >>> (planeBnv, planeBnv, 0, 255, planeYlength);
 					break;
 				}
 				case 2: //W3C
 				{
-					KernelSoftlight_W3C << <Yblocks, threads >> > (planeRnv, planeRnv, 0, 255, planeYlength);
-					KernelSoftlight_W3C << <Yblocks, threads >> > (planeGnv, planeGnv, 0, 255, planeYlength);
-					KernelSoftlight_W3C << <Yblocks, threads >> > (planeBnv, planeBnv, 0, 255, planeYlength);
+					KernelSoftlight_W3C <<<Yblocks, threads >>> (planeRnv, planeRnv, 0, 255, planeYlength);
+					KernelSoftlight_W3C <<<Yblocks, threads >>> (planeGnv, planeGnv, 0, 255, planeYlength);
+					KernelSoftlight_W3C <<<Yblocks, threads >>> (planeBnv, planeBnv, 0, 255, planeYlength);
 				}
 			}
 		}
 
-		KernelRGBtoBGR << <Yblocks, threads >> > (planeRnv, planeGnv, planeBnv, planeBGRnv, planewidth, planeheight, planewidth, planepitch);
+		cudaMemcpy(planeR, planeRnv, planeYlength, cudaMemcpyDeviceToHost);
+		cudaMemcpy(planeG, planeGnv, planeYlength, cudaMemcpyDeviceToHost);
+		cudaMemcpy(planeB, planeBnv, planeYlength, cudaMemcpyDeviceToHost);
+
+		cudaFree(planeRnv);
+		cudaFree(planeGnv);
+		cudaFree(planeBnv);
+	}
+	void CudaBoostSaturationRGB(unsigned char* planeR, unsigned char* planeG, unsigned char* planeB, int planeheight, int planewidth, int planepitch, int threads, int formula)
+	{
+		int planeYlength = planeheight * planewidth;
+		int Yblocks = blocks(planeYlength, threads);
+
+		unsigned char* planeRnv; cudaMalloc(&planeRnv, Yblocks * threads);
+		unsigned char* planeGnv; cudaMalloc(&planeGnv, Yblocks * threads);
+		unsigned char* planeBnv; cudaMalloc(&planeBnv, Yblocks * threads);
+
+		int hsvsize = blocks(planeYlength * sizeof(Npp32f), threads) * threads;
+
+		cudaMemcpy(planeRnv, planeR, planeYlength, cudaMemcpyHostToDevice);
+		cudaMemcpy(planeGnv, planeG, planeYlength, cudaMemcpyHostToDevice);
+		cudaMemcpy(planeBnv, planeB, planeYlength, cudaMemcpyHostToDevice);
+
+		Npp32f* planeHSV_Hnv;
+		Npp32f* planeHSV_Snv;
+		Npp32f* planeHSV_Vnv;
+
+		cudaMalloc(&planeHSV_Hnv, hsvsize);
+		cudaMalloc(&planeHSV_Snv, hsvsize);
+		cudaMalloc(&planeHSV_Vnv, hsvsize);
+
+		KernelRGB2HSV_HV <<<Yblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeHSV_Hnv, planeHSV_Vnv, planeYlength);
+
+		switch (formula) {
+		case 0: //pegtop
+		{
+			KernelSoftlight_pegtop <<<Yblocks, threads >>> (planeRnv, planeRnv, 0, 255, planeYlength);
+			KernelSoftlight_pegtop <<<Yblocks, threads >>> (planeGnv, planeGnv, 0, 255, planeYlength);
+			KernelSoftlight_pegtop <<<Yblocks, threads >>> (planeBnv, planeBnv, 0, 255, planeYlength);
+			break;
+		}
+		case 1: //illusions.hu
+		{
+			KernelSoftlight_illusionshu <<<Yblocks, threads >>> (planeRnv, planeRnv, 0, 255, planeYlength);
+			KernelSoftlight_illusionshu <<<Yblocks, threads >>> (planeGnv, planeGnv, 0, 255, planeYlength);
+			KernelSoftlight_illusionshu <<<Yblocks, threads >>> (planeBnv, planeBnv, 0, 255, planeYlength);
+			break;
+		}
+		case 2: //W3C
+		{
+			KernelSoftlight_W3C <<<Yblocks, threads >>> (planeRnv, planeRnv, 0, 255, planeYlength);
+			KernelSoftlight_W3C <<<Yblocks, threads >>> (planeGnv, planeGnv, 0, 255, planeYlength);
+			KernelSoftlight_W3C <<<Yblocks, threads >>> (planeBnv, planeBnv, 0, 255, planeYlength);
+		}
+		}
+
+		KernelRGB2HSV_S <<<Yblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeHSV_Snv, planeYlength);
+
+		KernelHSV2RGB <<<Yblocks, threads >>> (planeHSV_Hnv, planeHSV_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, planeYlength);
+
+		cudaMemcpy(planeR, planeRnv, planeYlength, cudaMemcpyDeviceToHost);
+		cudaMemcpy(planeG, planeGnv, planeYlength, cudaMemcpyDeviceToHost);
+		cudaMemcpy(planeB, planeBnv, planeYlength, cudaMemcpyDeviceToHost);
+
+		cudaFree(planeRnv);
+		cudaFree(planeGnv);
+		cudaFree(planeBnv);
+		cudaFree(planeHSV_Hnv);
+		cudaFree(planeHSV_Snv);
+		cudaFree(planeHSV_Vnv);
+	}
+	
+	void CudaNeutralizeRGB32(unsigned char* plane, int planeheight, int planewidth, int planepitch, int threads, int type, int formula) {
+
+		int bgrLength = planeheight * planepitch;
+		int bgrblocks = blocks(bgrLength, threads);
+
+		int planeYlength = planeheight * planewidth;
+		int Yblocks = blocks(planeYlength, threads);
+
+		unsigned char* planeRnv; cudaMalloc(&planeRnv, Yblocks * threads);
+		unsigned char* planeGnv; cudaMalloc(&planeGnv, Yblocks * threads);
+		unsigned char* planeBnv; cudaMalloc(&planeBnv, Yblocks * threads);
+		unsigned char* planeBGRnv; cudaMalloc(&planeBGRnv, bgrblocks * threads);
+
+		int hsvsize = blocks(planeYlength * sizeof(Npp32f), threads) * threads;
+
+		cudaMemcpy(planeBGRnv, plane, bgrLength, cudaMemcpyHostToDevice);
+		KernelBGRtoRGB <<<bgrblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeBGRnv, planewidth, planeheight, planewidth, planepitch);
+
+		Npp32f* planeHSVo_Hnv;
+		Npp32f* planeHSVo_Snv;
+		Npp32f* planeHSVo_Vnv;
+
+		Npp32f* planeHSV_Hnv;
+		Npp32f* planeHSV_Snv;
+		Npp32f* planeHSV_Vnv;
+
+		if (type == 1)
+		{
+			cudaMalloc(&planeHSVo_Hnv, hsvsize);
+			cudaMalloc(&planeHSVo_Snv, hsvsize);
+			cudaMalloc(&planeHSV_Vnv, hsvsize);
+			KernelRGB2HSV_HS <<<Yblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeHSVo_Hnv, planeHSVo_Snv, planeYlength); //make Hue & Saturation planes from original planes
+		}
+		else if (type == 0 || type == 2)
+		{
+			cudaMalloc(&planeHSV_Hnv, hsvsize);
+			cudaMalloc(&planeHSV_Snv, hsvsize);
+			cudaMalloc(&planeHSVo_Vnv, hsvsize);
+			KernelRGB2HSV_V <<<Yblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeHSVo_Vnv, planeYlength); //make original Volume plane
+		}
+
+		unsigned long long Rsum = 0, Gsum = 0, Bsum = 0;
+
+		CudaSumNV(planeRnv, planeYlength, &Rsum, threads);
+		CudaSumNV(planeGnv, planeYlength, &Gsum, threads);
+		CudaSumNV(planeBnv, planeYlength, &Bsum, threads);
+
+		int length = planewidth * planeheight;
+		Rsum /= length;
+		Gsum /= length;
+		Bsum /= length;
+		Rsum = 255 - Rsum;
+		Gsum = 255 - Gsum;
+		Bsum = 255 - Bsum;
+
+		switch (formula) {
+		case 0: //pegtop
+		{
+			KernelSoftlightFC_pegtop <<<Yblocks, threads >>> (planeRnv, (float)Rsum / 255, 0, 255, planeYlength);
+			KernelSoftlightFC_pegtop <<<Yblocks, threads >>> (planeGnv, (float)Gsum / 255, 0, 255, planeYlength);
+			KernelSoftlightFC_pegtop <<<Yblocks, threads >>> (planeBnv, (float)Bsum / 255, 0, 255, planeYlength);
+			break;
+		}
+		case 1: //illusions.hu
+		{
+			KernelSoftlightFC_illusionshu <<<Yblocks, threads >>> (planeRnv, (float)Rsum / 255, 0, 255, planeYlength);
+			KernelSoftlightFC_illusionshu <<<Yblocks, threads >>> (planeGnv, (float)Gsum / 255, 0, 255, planeYlength);
+			KernelSoftlightFC_illusionshu <<<Yblocks, threads >>> (planeBnv, (float)Bsum / 255, 0, 255, planeYlength);
+			break;
+		}
+		case 2: //W3C
+		{
+			KernelSoftlightFC_W3C <<<Yblocks, threads >>> (planeRnv, (float)Rsum / 255, 0, 255, planeYlength);
+			KernelSoftlightFC_W3C <<<Yblocks, threads >>> (planeGnv, (float)Gsum / 255, 0, 255, planeYlength);
+			KernelSoftlightFC_W3C <<<Yblocks, threads >>> (planeBnv, (float)Bsum / 255, 0, 255, planeYlength);
+		}
+		}
+
+		if (type == 0 || type == 2)
+		{
+			KernelRGB2HSV_HS <<<Yblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeHSV_Hnv, planeHSV_Snv, planeYlength); //make Hue & Saturation planes from processed RGB
+		}
+		else if (type == 1)
+		{
+			KernelRGB2HSV_V <<<Yblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeHSV_Vnv, planeYlength);
+		}
+
+		if (type == 2) {
+			switch (formula) {
+			case 0: //pegtop
+			{
+				KernelSoftlightF_pegtop <<<Yblocks, threads >>> (planeHSV_Snv, planeHSV_Snv, 0.0, 1.0, planeYlength);
+				break;
+			}
+			case 1: //illusions.hu
+			{
+				KernelSoftlightF_illusionshu <<<Yblocks, threads >>> (planeHSV_Snv, planeHSV_Snv, 0.0, 1.0, planeYlength);
+				break;
+			}
+			case 2: //W3C
+			{
+				KernelSoftlightF_W3C <<<Yblocks, threads >>> (planeHSV_Snv, planeHSV_Snv, 0.0, 1.0, planeYlength);
+			}
+			}
+		}
+
+		if (type == 0 || type == 2)
+		{
+			KernelHSV2RGB <<<Yblocks, threads >>> (planeHSV_Hnv, planeHSV_Snv, planeHSVo_Vnv, planeRnv, planeGnv, planeBnv, planeYlength);
+		}
+		else if (type == 1)
+		{
+			KernelHSV2RGB <<<Yblocks, threads >>> (planeHSVo_Hnv, planeHSVo_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, planeYlength);
+		}
+
+		KernelRGBtoBGR <<<Yblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeBGRnv, planewidth, planeheight, planewidth, planepitch);
+
+		cudaMemcpy(plane, planeBGRnv, bgrLength, cudaMemcpyDeviceToHost);
+
+		cudaFree(planeRnv);
+		cudaFree(planeGnv);
+		cudaFree(planeBnv);
+		cudaFree(planeBGRnv);
+
+		if (type == 1)
+		{
+			cudaFree(planeHSVo_Hnv);
+			cudaFree(planeHSVo_Snv);
+			cudaFree(planeHSV_Vnv);
+		}
+		else if (type == 0 || type == 2)
+		{
+			cudaFree(planeHSVo_Vnv);
+			cudaFree(planeHSV_Hnv);
+			cudaFree(planeHSV_Snv);
+		}
+	}
+	void CudaNeutralizeRGB32withLight(unsigned char* plane, int planeheight, int planewidth, int planepitch, int threads, int type, int formula)
+	{
+		int bgrLength = planeheight * planepitch;
+		int bgrblocks = blocks(bgrLength, threads);
+
+		int planeYlength = planeheight * planewidth;
+		int Yblocks = blocks(planeYlength, threads);
+
+		unsigned char* planeRnv; cudaMalloc(&planeRnv, Yblocks * threads);
+		unsigned char* planeGnv; cudaMalloc(&planeGnv, Yblocks * threads);
+		unsigned char* planeBnv; cudaMalloc(&planeBnv, Yblocks * threads);
+		unsigned char* planeBGRnv; cudaMalloc(&planeBGRnv, bgrblocks * threads);
+
+		int hsvsize = blocks(planeYlength * sizeof(Npp32f), threads) * threads;
+
+		cudaMemcpy(planeBGRnv, plane, bgrLength, cudaMemcpyHostToDevice);
+		KernelBGRtoRGB <<<bgrblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeBGRnv, planewidth, planeheight, planewidth, planepitch);
+
+		unsigned long long Rsum = 0, Gsum = 0, Bsum = 0;
+
+		CudaSumNV(planeRnv, planeYlength, &Rsum, threads);
+		CudaSumNV(planeGnv, planeYlength, &Gsum, threads);
+		CudaSumNV(planeBnv, planeYlength, &Bsum, threads);
+
+		int length = planewidth * planeheight;
+		Rsum /= length;
+		Gsum /= length;
+		Bsum /= length;
+		Rsum = 255 - Rsum;
+		Gsum = 255 - Gsum;
+		Bsum = 255 - Bsum;
+
+		if (type == 0 || type == 1 || type == 3) {
+			switch (formula) {
+				case 0: //pegtop
+				{
+					KernelSoftlightFC_pegtop <<<Yblocks, threads >>> (planeRnv, (float)Rsum / 255, 0, 255, planeYlength);
+					KernelSoftlightFC_pegtop <<<Yblocks, threads >>> (planeGnv, (float)Gsum / 255, 0, 255, planeYlength);
+					KernelSoftlightFC_pegtop <<<Yblocks, threads >>> (planeBnv, (float)Bsum / 255, 0, 255, planeYlength);
+					break;
+				}
+				case 1: //illusions.hu
+				{
+					KernelSoftlightFC_illusionshu <<<Yblocks, threads >>> (planeRnv, (float)Rsum / 255, 0, 255, planeYlength);
+					KernelSoftlightFC_illusionshu <<<Yblocks, threads >>> (planeGnv, (float)Gsum / 255, 0, 255, planeYlength);
+					KernelSoftlightFC_illusionshu <<<Yblocks, threads >>> (planeBnv, (float)Bsum / 255, 0, 255, planeYlength);
+					break;
+				}
+				case 2: //W3C
+				{
+					KernelSoftlightFC_W3C <<<Yblocks, threads >>> (planeRnv, (float)Rsum / 255, 0, 255, planeYlength);
+					KernelSoftlightFC_W3C <<<Yblocks, threads >>> (planeGnv, (float)Gsum / 255, 0, 255, planeYlength);
+					KernelSoftlightFC_W3C <<<Yblocks, threads >>> (planeBnv, (float)Bsum / 255, 0, 255, planeYlength);
+				}
+			}
+		}
+
+		if (type == 1 || type == 2) {
+			switch (formula) {
+				case 0: //pegtop
+				{
+					KernelSoftlight_pegtop <<<Yblocks, threads >>> (planeRnv, planeRnv, 0, 255, planeYlength);
+					KernelSoftlight_pegtop <<<Yblocks, threads >>> (planeGnv, planeGnv, 0, 255, planeYlength);
+					KernelSoftlight_pegtop <<<Yblocks, threads >>> (planeBnv, planeBnv, 0, 255, planeYlength);
+					break;
+				}
+				case 1: //illusions.hu
+				{
+					KernelSoftlight_illusionshu <<<Yblocks, threads >>> (planeRnv, planeRnv, 0, 255, planeYlength);
+					KernelSoftlight_illusionshu <<<Yblocks, threads >>> (planeGnv, planeGnv, 0, 255, planeYlength);
+					KernelSoftlight_illusionshu <<<Yblocks, threads >>> (planeBnv, planeBnv, 0, 255, planeYlength);
+					break;
+				}
+				case 2: //W3C
+				{
+					KernelSoftlight_W3C <<<Yblocks, threads >>> (planeRnv, planeRnv, 0, 255, planeYlength);
+					KernelSoftlight_W3C <<<Yblocks, threads >>> (planeGnv, planeGnv, 0, 255, planeYlength);
+					KernelSoftlight_W3C <<<Yblocks, threads >>> (planeBnv, planeBnv, 0, 255, planeYlength);
+				}
+			}
+		}
+
+		KernelRGBtoBGR <<<Yblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeBGRnv, planewidth, planeheight, planewidth, planepitch);
 
 		cudaMemcpy(plane, planeBGRnv, bgrLength, cudaMemcpyDeviceToHost);
 
@@ -939,7 +1200,6 @@
 		cudaFree(planeBnv);
 		cudaFree(planeBGRnv);
 	}
-
 	void CudaBoostSaturationRGB32(unsigned char* plane, int planeheight, int planewidth, int planepitch, int threads, int formula)
 	{
 		int bgrLength = planeheight * planepitch;
@@ -956,7 +1216,7 @@
 		int hsvsize = blocks(planeYlength * sizeof(Npp32f), threads) * threads;
 
 		cudaMemcpy(planeBGRnv, plane, bgrLength, cudaMemcpyHostToDevice);
-		KernelBGRtoRGB <<<bgrblocks, threads >> > (planeRnv, planeGnv, planeBnv, planeBGRnv, planewidth, planeheight, planewidth, planepitch);
+		KernelBGRtoRGB <<<bgrblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeBGRnv, planewidth, planeheight, planewidth, planepitch);
 
 		Npp32f* planeHSV_Hnv;
 		Npp32f* planeHSV_Snv;
@@ -966,21 +1226,21 @@
 		cudaMalloc(&planeHSV_Snv, hsvsize);
 		cudaMalloc(&planeHSV_Vnv, hsvsize);
 
-		KernelRGB2HSV_HV <<<Yblocks, threads >> > (planeRnv, planeGnv, planeBnv, planeHSV_Hnv, planeHSV_Vnv, planeYlength);
+		KernelRGB2HSV_HV <<<Yblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeHSV_Hnv, planeHSV_Vnv, planeYlength);
 
 		switch (formula) {
 		case 0: //pegtop
 		{
-			KernelSoftlight_pegtop <<<Yblocks, threads >> > (planeRnv, planeRnv, 0, 255, planeYlength);
-			KernelSoftlight_pegtop <<<Yblocks, threads >> > (planeGnv, planeGnv, 0, 255, planeYlength);
-			KernelSoftlight_pegtop <<<Yblocks, threads >> > (planeBnv, planeBnv, 0, 255, planeYlength);
+			KernelSoftlight_pegtop <<<Yblocks, threads >>> (planeRnv, planeRnv, 0, 255, planeYlength);
+			KernelSoftlight_pegtop <<<Yblocks, threads >>> (planeGnv, planeGnv, 0, 255, planeYlength);
+			KernelSoftlight_pegtop <<<Yblocks, threads >>> (planeBnv, planeBnv, 0, 255, planeYlength);
 			break;
 		}
 		case 1: //illusions.hu
 		{
-			KernelSoftlight_illusionshu <<<Yblocks, threads >> > (planeRnv, planeRnv, 0, 255, planeYlength);
-			KernelSoftlight_illusionshu <<<Yblocks, threads >> > (planeGnv, planeGnv, 0, 255, planeYlength);
-			KernelSoftlight_illusionshu <<<Yblocks, threads >> > (planeBnv, planeBnv, 0, 255, planeYlength);
+			KernelSoftlight_illusionshu <<<Yblocks, threads >>> (planeRnv, planeRnv, 0, 255, planeYlength);
+			KernelSoftlight_illusionshu <<<Yblocks, threads >>> (planeGnv, planeGnv, 0, 255, planeYlength);
+			KernelSoftlight_illusionshu <<<Yblocks, threads >>> (planeBnv, planeBnv, 0, 255, planeYlength);
 			break;
 		}
 		case 2: //W3C
@@ -1101,7 +1361,7 @@
 
 		if (type == 0 || type == 2)
 		{
-			KernelRGB2HSV_HS <<<Yblocks, threads >> > (planeRnv, planeGnv, planeBnv, planeHSV_Hnv, planeHSV_Snv, planeYlength); //make Hue & Saturation planes from processed RGB
+			KernelRGB2HSV_HS <<<Yblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeHSV_Hnv, planeHSV_Snv, planeYlength); //make Hue & Saturation planes from processed RGB
 		}
 		else if (type == 1)
 		{
@@ -1129,11 +1389,11 @@
 
 		if (type == 0 || type == 2)
 		{
-			KernelHSV2RGB << <Yblocks, threads >> > (planeHSV_Hnv, planeHSV_Snv, planeHSVo_Vnv, planeRnv, planeGnv, planeBnv, planeYlength);
+			KernelHSV2RGB <<<Yblocks, threads >>> (planeHSV_Hnv, planeHSV_Snv, planeHSVo_Vnv, planeRnv, planeGnv, planeBnv, planeYlength);
 		}
 		else if (type == 1)
 		{
-			KernelHSV2RGB << <Yblocks, threads >> > (planeHSVo_Hnv, planeHSVo_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, planeYlength);
+			KernelHSV2RGB <<<Yblocks, threads >>> (planeHSVo_Hnv, planeHSVo_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, planeYlength);
 		}
 		
 		//allocate full UV planes buffers:
@@ -1175,7 +1435,6 @@
 			cudaFree(planeHSV_Snv);
 		}
 	}
-	
 	void CudaNeutralizeYUV420byRGBwithLight(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula)
 	{
 		unsigned char* planeYnv;
@@ -1296,114 +1555,6 @@
 		cudaFree(planeUnv);
 		cudaFree(planeVnv);
 	}
-	void CudaNeutralizeYUV444byRGBwithLight(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula)
-	{
-		unsigned char* planeYnv;
-		unsigned char* planeUnv;
-		unsigned char* planeVnv;
-
-		int planeYlength = planeYpitch * planeYheight;
-		int planeUlength = planeUpitch * planeUheight;
-		int planeVlength = planeVpitch * planeVheight;
-
-		int Yblocks = blocks(planeYlength, threads);
-		int Ublocks = blocks(planeUlength, threads);
-		int Vblocks = blocks(planeVlength, threads);
-
-		cudaMalloc(&planeYnv, Yblocks * threads * sizeof(char));
-		cudaMemcpy(planeYnv, planeY, planeYlength, cudaMemcpyHostToDevice);
-
-		cudaMalloc(&planeUnv, Ublocks * threads * sizeof(char));
-		cudaMemcpy(planeUnv, planeU, planeUlength, cudaMemcpyHostToDevice);
-
-		cudaMalloc(&planeVnv, Vblocks * threads * sizeof(char));
-		cudaMemcpy(planeVnv, planeV, planeVlength, cudaMemcpyHostToDevice);
-
-		unsigned char* planeRnv; cudaMalloc(&planeRnv, Yblocks * threads);
-		unsigned char* planeGnv; cudaMalloc(&planeGnv, Yblocks * threads);
-		unsigned char* planeBnv; cudaMalloc(&planeBnv, Yblocks * threads);
-
-		KernelYUV2RGB << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYpitch);
-
-		unsigned long long Rsum = 0, Gsum = 0, Bsum = 0;
-
-		CudaSumNV(planeRnv, planeYlength, &Rsum, threads);
-		CudaSumNV(planeGnv, planeYlength, &Gsum, threads);
-		CudaSumNV(planeBnv, planeYlength, &Bsum, threads);
-
-		int length = planeYwidth * planeYheight;
-		Rsum /= length;
-		Gsum /= length;
-		Bsum /= length;
-		Rsum = 255 - Rsum;
-		Gsum = 255 - Gsum;
-		Bsum = 255 - Bsum;
-
-		if (type == 0 || type == 1 || type == 3) {
-
-			switch (formula) {
-			case 0: //pegtop
-			{
-				KernelSoftlightFC_pegtop << <Yblocks, threads >> > (planeRnv, (float)Rsum / 255, 0, 255, planeYlength);
-				KernelSoftlightFC_pegtop << <Yblocks, threads >> > (planeGnv, (float)Gsum / 255, 0, 255, planeYlength);
-				KernelSoftlightFC_pegtop << <Yblocks, threads >> > (planeBnv, (float)Bsum / 255, 0, 255, planeYlength);
-				break;
-			}
-			case 1: //illusions.hu
-			{
-				KernelSoftlightFC_illusionshu << <Yblocks, threads >> > (planeRnv, (float)Rsum / 255, 0, 255, planeYlength);
-				KernelSoftlightFC_illusionshu << <Yblocks, threads >> > (planeGnv, (float)Gsum / 255, 0, 255, planeYlength);
-				KernelSoftlightFC_illusionshu << <Yblocks, threads >> > (planeBnv, (float)Bsum / 255, 0, 255, planeYlength);
-				break;
-			}
-			case 2: //W3C
-			{
-				KernelSoftlightFC_W3C << <Yblocks, threads >> > (planeRnv, (float)Rsum / 255, 0, 255, planeYlength);
-				KernelSoftlightFC_W3C << <Yblocks, threads >> > (planeGnv, (float)Gsum / 255, 0, 255, planeYlength);
-				KernelSoftlightFC_W3C << <Yblocks, threads >> > (planeBnv, (float)Bsum / 255, 0, 255, planeYlength);
-			}
-			}
-		}
-
-		if (type == 1 || type == 2) {
-			switch (formula) {
-			case 0: //pegtop
-			{
-				KernelSoftlight_pegtop << <Yblocks, threads >> > (planeRnv, planeRnv, 0, 255, planeYlength);
-				KernelSoftlight_pegtop << <Yblocks, threads >> > (planeGnv, planeGnv, 0, 255, planeYlength);
-				KernelSoftlight_pegtop << <Yblocks, threads >> > (planeBnv, planeBnv, 0, 255, planeYlength);
-				break;
-			}
-			case 1: //illusions.hu
-			{
-				KernelSoftlight_illusionshu << <Yblocks, threads >> > (planeRnv, planeRnv, 0, 255, planeYlength);
-				KernelSoftlight_illusionshu << <Yblocks, threads >> > (planeGnv, planeGnv, 0, 255, planeYlength);
-				KernelSoftlight_illusionshu << <Yblocks, threads >> > (planeBnv, planeBnv, 0, 255, planeYlength);
-				break;
-			}
-			case 2: //W3C
-			{
-				KernelSoftlight_W3C << <Yblocks, threads >> > (planeRnv, planeRnv, 0, 255, planeYlength);
-				KernelSoftlight_W3C << <Yblocks, threads >> > (planeGnv, planeGnv, 0, 255, planeYlength);
-				KernelSoftlight_W3C << <Yblocks, threads >> > (planeBnv, planeBnv, 0, 255, planeYlength);
-			}
-			}
-		}
-
-		KernelRGB2YUV << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYpitch);
-
-		cudaMemcpy(planeY, planeYnv, planeYlength, cudaMemcpyDeviceToHost);
-		cudaMemcpy(planeU, planeUnv, planeUlength, cudaMemcpyDeviceToHost);
-		cudaMemcpy(planeV, planeVnv, planeVlength, cudaMemcpyDeviceToHost);
-
-		cudaFree(planeRnv);
-		cudaFree(planeGnv);
-		cudaFree(planeBnv);
-		cudaFree(planeYnv);
-		cudaFree(planeUnv);
-		cudaFree(planeVnv);
-	}
-
 	void CudaBoostSaturationYUV420(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int formula) {
 		unsigned char* planeYnv;
 		unsigned char* planeUnv;
@@ -1445,26 +1596,26 @@
 		KernelRGB2HSV_HV <<<Yblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeHSV_Hnv, planeHSV_Vnv, planeYlength);
 
 		switch (formula) {
-			case 0: //pegtop
-			{
-				KernelSoftlight_pegtop <<<Yblocks, threads >>> (planeRnv, planeRnv, 0, 255, planeYlength);
-				KernelSoftlight_pegtop <<<Yblocks, threads >>> (planeGnv, planeGnv, 0, 255, planeYlength);
-				KernelSoftlight_pegtop <<<Yblocks, threads >>> (planeBnv, planeBnv, 0, 255, planeYlength);
-				break;
-			}
-			case 1: //illusions.hu
-			{
-				KernelSoftlight_illusionshu <<<Yblocks, threads >>> (planeRnv, planeRnv, 0, 255, planeYlength);
-				KernelSoftlight_illusionshu <<<Yblocks, threads >>> (planeGnv, planeGnv, 0, 255, planeYlength);
-				KernelSoftlight_illusionshu <<<Yblocks, threads >>> (planeBnv, planeBnv, 0, 255, planeYlength);
-				break;
-			}
-			case 2: //W3C
-			{
-				KernelSoftlight_W3C <<<Yblocks, threads >>> (planeRnv, planeRnv, 0, 255, planeYlength);
-				KernelSoftlight_W3C <<<Yblocks, threads >>> (planeGnv, planeGnv, 0, 255, planeYlength);
-				KernelSoftlight_W3C <<<Yblocks, threads >>> (planeBnv, planeBnv, 0, 255, planeYlength);
-			}
+		case 0: //pegtop
+		{
+			KernelSoftlight_pegtop <<<Yblocks, threads >>> (planeRnv, planeRnv, 0, 255, planeYlength);
+			KernelSoftlight_pegtop <<<Yblocks, threads >>> (planeGnv, planeGnv, 0, 255, planeYlength);
+			KernelSoftlight_pegtop <<<Yblocks, threads >>> (planeBnv, planeBnv, 0, 255, planeYlength);
+			break;
+		}
+		case 1: //illusions.hu
+		{
+			KernelSoftlight_illusionshu <<<Yblocks, threads >>> (planeRnv, planeRnv, 0, 255, planeYlength);
+			KernelSoftlight_illusionshu <<<Yblocks, threads >>> (planeGnv, planeGnv, 0, 255, planeYlength);
+			KernelSoftlight_illusionshu <<<Yblocks, threads >>> (planeBnv, planeBnv, 0, 255, planeYlength);
+			break;
+		}
+		case 2: //W3C
+		{
+			KernelSoftlight_W3C <<<Yblocks, threads >>> (planeRnv, planeRnv, 0, 255, planeYlength);
+			KernelSoftlight_W3C <<<Yblocks, threads >>> (planeGnv, planeGnv, 0, 255, planeYlength);
+			KernelSoftlight_W3C <<<Yblocks, threads >>> (planeBnv, planeBnv, 0, 255, planeYlength);
+		}
 		}
 
 		KernelRGB2HSV_S <<<Yblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeHSV_Snv, planeYlength);
@@ -1486,90 +1637,6 @@
 
 		cudaFree(planeUnvFull);
 		cudaFree(planeVnvFull);
-
-		cudaMemcpy(planeY, planeYnv, planeYlength, cudaMemcpyDeviceToHost);
-		cudaMemcpy(planeU, planeUnv, planeUlength, cudaMemcpyDeviceToHost);
-		cudaMemcpy(planeV, planeVnv, planeVlength, cudaMemcpyDeviceToHost);
-
-		cudaFree(planeRnv);
-		cudaFree(planeGnv);
-		cudaFree(planeBnv);
-		cudaFree(planeYnv);
-		cudaFree(planeUnv);
-		cudaFree(planeVnv);
-		cudaFree(planeHSV_Hnv);
-		cudaFree(planeHSV_Snv);
-		cudaFree(planeHSV_Vnv);
-	}
-	
-	void CudaBoostSaturationYUV444(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int formula) {
-		unsigned char* planeYnv;
-		unsigned char* planeUnv;
-		unsigned char* planeVnv;
-
-		int planeYlength = planeYpitch * planeYheight;
-		int planeUlength = planeUpitch * planeUheight;
-		int planeVlength = planeVpitch * planeVheight;
-
-		int Yblocks = blocks(planeYlength, threads);
-		int Ublocks = blocks(planeUlength, threads);
-		int Vblocks = blocks(planeVlength, threads);
-
-		cudaMalloc(&planeYnv, Yblocks * threads * sizeof(char));
-		cudaMemcpy(planeYnv, planeY, planeYlength, cudaMemcpyHostToDevice);
-
-		cudaMalloc(&planeUnv, Ublocks * threads * sizeof(char));
-		cudaMemcpy(planeUnv, planeU, planeUlength, cudaMemcpyHostToDevice);
-
-		cudaMalloc(&planeVnv, Vblocks * threads * sizeof(char));
-		cudaMemcpy(planeVnv, planeV, planeVlength, cudaMemcpyHostToDevice);
-
-		unsigned char* planeRnv; cudaMalloc(&planeRnv, Yblocks * threads);
-		unsigned char* planeGnv; cudaMalloc(&planeGnv, Yblocks * threads);
-		unsigned char* planeBnv; cudaMalloc(&planeBnv, Yblocks * threads);
-
-		int hsvsize = blocks(planeYlength * sizeof(Npp32f), threads) * threads;
-
-		KernelYUV2RGB << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYpitch);
-
-		Npp32f* planeHSV_Hnv;
-		Npp32f* planeHSV_Snv;
-		Npp32f* planeHSV_Vnv;
-
-		cudaMalloc(&planeHSV_Hnv, hsvsize);
-		cudaMalloc(&planeHSV_Snv, hsvsize);
-		cudaMalloc(&planeHSV_Vnv, hsvsize);
-
-		KernelRGB2HSV_HV << <Yblocks, threads >> > (planeRnv, planeGnv, planeBnv, planeHSV_Hnv, planeHSV_Vnv, planeYlength);
-
-		switch (formula) {
-		case 0: //pegtop
-		{
-			KernelSoftlight_pegtop << <Yblocks, threads >> > (planeRnv, planeRnv, 0, 255, planeYlength);
-			KernelSoftlight_pegtop << <Yblocks, threads >> > (planeGnv, planeGnv, 0, 255, planeYlength);
-			KernelSoftlight_pegtop << <Yblocks, threads >> > (planeBnv, planeBnv, 0, 255, planeYlength);
-			break;
-		}
-		case 1: //illusions.hu
-		{
-			KernelSoftlight_illusionshu << <Yblocks, threads >> > (planeRnv, planeRnv, 0, 255, planeYlength);
-			KernelSoftlight_illusionshu << <Yblocks, threads >> > (planeGnv, planeGnv, 0, 255, planeYlength);
-			KernelSoftlight_illusionshu << <Yblocks, threads >> > (planeBnv, planeBnv, 0, 255, planeYlength);
-			break;
-		}
-		case 2: //W3C
-		{
-			KernelSoftlight_W3C << <Yblocks, threads >> > (planeRnv, planeRnv, 0, 255, planeYlength);
-			KernelSoftlight_W3C << <Yblocks, threads >> > (planeGnv, planeGnv, 0, 255, planeYlength);
-			KernelSoftlight_W3C << <Yblocks, threads >> > (planeBnv, planeBnv, 0, 255, planeYlength);
-		}
-		}
-
-		KernelRGB2HSV_S << <Yblocks, threads >> > (planeRnv, planeGnv, planeBnv, planeHSV_Snv, planeYlength);
-
-		KernelHSV2RGB << <Yblocks, threads >> > (planeHSV_Hnv, planeHSV_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, planeYlength);
-
-		KernelRGB2YUV << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYpitch);
 
 		cudaMemcpy(planeY, planeYnv, planeYlength, cudaMemcpyDeviceToHost);
 		cudaMemcpy(planeU, planeUnv, planeUlength, cudaMemcpyDeviceToHost);
@@ -1615,7 +1682,7 @@
 
 		int hsvsize = blocks(planeYlength * sizeof(Npp32f), threads) * threads;
 
-		KernelYUV2RGB<<<Yblocks,threads>>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv,planeYwidth, planeYheight, planeYpitch);
+		KernelYUV2RGB <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYpitch);
 
 		Npp32f* planeHSVo_Hnv;
 		Npp32f* planeHSVo_Snv;
@@ -1656,26 +1723,26 @@
 
 
 		switch (formula) {
-			case 0: //pegtop
-			{
-				KernelSoftlightFC_pegtop <<<Yblocks, threads>>> (planeRnv, (float)Rsum / 255, 0, 255, planeYlength);
-				KernelSoftlightFC_pegtop <<<Yblocks, threads>>> (planeGnv, (float)Gsum / 255, 0, 255, planeYlength);
-				KernelSoftlightFC_pegtop <<<Yblocks, threads>>> (planeBnv, (float)Bsum / 255, 0, 255, planeYlength);
-				break;
-			}
-			case 1: //illusions.hu
-			{
-				KernelSoftlightFC_illusionshu <<<Yblocks, threads >>> (planeRnv, (float)Rsum / 255, 0, 255, planeYlength);
-				KernelSoftlightFC_illusionshu <<<Yblocks, threads >>> (planeGnv, (float)Gsum / 255, 0, 255, planeYlength);
-				KernelSoftlightFC_illusionshu <<<Yblocks, threads >>> (planeBnv, (float)Bsum / 255, 0, 255, planeYlength);
-				break;
-			}
-			case 2: //W3C
-			{
-				KernelSoftlightFC_W3C <<<Yblocks, threads >>> (planeRnv, (float)Rsum / 255, 0, 255, planeYlength);
-				KernelSoftlightFC_W3C <<<Yblocks, threads >>> (planeGnv, (float)Gsum / 255, 0, 255, planeYlength);
-				KernelSoftlightFC_W3C <<<Yblocks, threads >>> (planeBnv, (float)Bsum / 255, 0, 255, planeYlength);
-			}
+		case 0: //pegtop
+		{
+			KernelSoftlightFC_pegtop <<<Yblocks, threads >>> (planeRnv, (float)Rsum / 255, 0, 255, planeYlength);
+			KernelSoftlightFC_pegtop <<<Yblocks, threads >>> (planeGnv, (float)Gsum / 255, 0, 255, planeYlength);
+			KernelSoftlightFC_pegtop <<<Yblocks, threads >>> (planeBnv, (float)Bsum / 255, 0, 255, planeYlength);
+			break;
+		}
+		case 1: //illusions.hu
+		{
+			KernelSoftlightFC_illusionshu <<<Yblocks, threads >>> (planeRnv, (float)Rsum / 255, 0, 255, planeYlength);
+			KernelSoftlightFC_illusionshu <<<Yblocks, threads >>> (planeGnv, (float)Gsum / 255, 0, 255, planeYlength);
+			KernelSoftlightFC_illusionshu <<<Yblocks, threads >>> (planeBnv, (float)Bsum / 255, 0, 255, planeYlength);
+			break;
+		}
+		case 2: //W3C
+		{
+			KernelSoftlightFC_W3C <<<Yblocks, threads >>> (planeRnv, (float)Rsum / 255, 0, 255, planeYlength);
+			KernelSoftlightFC_W3C <<<Yblocks, threads >>> (planeGnv, (float)Gsum / 255, 0, 255, planeYlength);
+			KernelSoftlightFC_W3C <<<Yblocks, threads >>> (planeBnv, (float)Bsum / 255, 0, 255, planeYlength);
+		}
 		}
 
 		if (type == 0 || type == 2)
@@ -1714,7 +1781,7 @@
 			KernelHSV2RGB <<<Yblocks, threads >>> (planeHSVo_Hnv, planeHSVo_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, planeYlength);
 		}
 
-		KernelRGB2YUV <<<Yblocks, threads>>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYpitch);
+		KernelRGB2YUV <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYpitch);
 
 		cudaMemcpy(planeY, planeYnv, planeYlength, cudaMemcpyDeviceToHost);
 		cudaMemcpy(planeU, planeUnv, planeUlength, cudaMemcpyDeviceToHost);
@@ -1738,6 +1805,196 @@
 			cudaFree(planeHSV_Hnv);
 			cudaFree(planeHSV_Snv);
 		}
+	}
+	void CudaNeutralizeYUV444byRGBwithLight(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula)
+	{
+		unsigned char* planeYnv;
+		unsigned char* planeUnv;
+		unsigned char* planeVnv;
+
+		int planeYlength = planeYpitch * planeYheight;
+		int planeUlength = planeUpitch * planeUheight;
+		int planeVlength = planeVpitch * planeVheight;
+
+		int Yblocks = blocks(planeYlength, threads);
+		int Ublocks = blocks(planeUlength, threads);
+		int Vblocks = blocks(planeVlength, threads);
+
+		cudaMalloc(&planeYnv, Yblocks * threads * sizeof(char));
+		cudaMemcpy(planeYnv, planeY, planeYlength, cudaMemcpyHostToDevice);
+
+		cudaMalloc(&planeUnv, Ublocks * threads * sizeof(char));
+		cudaMemcpy(planeUnv, planeU, planeUlength, cudaMemcpyHostToDevice);
+
+		cudaMalloc(&planeVnv, Vblocks * threads * sizeof(char));
+		cudaMemcpy(planeVnv, planeV, planeVlength, cudaMemcpyHostToDevice);
+
+		unsigned char* planeRnv; cudaMalloc(&planeRnv, Yblocks * threads);
+		unsigned char* planeGnv; cudaMalloc(&planeGnv, Yblocks * threads);
+		unsigned char* planeBnv; cudaMalloc(&planeBnv, Yblocks * threads);
+
+		KernelYUV2RGB <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYpitch);
+
+		unsigned long long Rsum = 0, Gsum = 0, Bsum = 0;
+
+		CudaSumNV(planeRnv, planeYlength, &Rsum, threads);
+		CudaSumNV(planeGnv, planeYlength, &Gsum, threads);
+		CudaSumNV(planeBnv, planeYlength, &Bsum, threads);
+
+		int length = planeYwidth * planeYheight;
+		Rsum /= length;
+		Gsum /= length;
+		Bsum /= length;
+		Rsum = 255 - Rsum;
+		Gsum = 255 - Gsum;
+		Bsum = 255 - Bsum;
+
+		if (type == 0 || type == 1 || type == 3) {
+
+			switch (formula) {
+			case 0: //pegtop
+			{
+				KernelSoftlightFC_pegtop <<<Yblocks, threads >>> (planeRnv, (float)Rsum / 255, 0, 255, planeYlength);
+				KernelSoftlightFC_pegtop <<<Yblocks, threads >>> (planeGnv, (float)Gsum / 255, 0, 255, planeYlength);
+				KernelSoftlightFC_pegtop <<<Yblocks, threads >>> (planeBnv, (float)Bsum / 255, 0, 255, planeYlength);
+				break;
+			}
+			case 1: //illusions.hu
+			{
+				KernelSoftlightFC_illusionshu <<<Yblocks, threads >>> (planeRnv, (float)Rsum / 255, 0, 255, planeYlength);
+				KernelSoftlightFC_illusionshu <<<Yblocks, threads >>> (planeGnv, (float)Gsum / 255, 0, 255, planeYlength);
+				KernelSoftlightFC_illusionshu <<<Yblocks, threads >>> (planeBnv, (float)Bsum / 255, 0, 255, planeYlength);
+				break;
+			}
+			case 2: //W3C
+			{
+				KernelSoftlightFC_W3C <<<Yblocks, threads >>> (planeRnv, (float)Rsum / 255, 0, 255, planeYlength);
+				KernelSoftlightFC_W3C <<<Yblocks, threads >>> (planeGnv, (float)Gsum / 255, 0, 255, planeYlength);
+				KernelSoftlightFC_W3C <<<Yblocks, threads >>> (planeBnv, (float)Bsum / 255, 0, 255, planeYlength);
+			}
+			}
+		}
+
+		if (type == 1 || type == 2) {
+			switch (formula) {
+			case 0: //pegtop
+			{
+				KernelSoftlight_pegtop <<<Yblocks, threads >>> (planeRnv, planeRnv, 0, 255, planeYlength);
+				KernelSoftlight_pegtop <<<Yblocks, threads >>> (planeGnv, planeGnv, 0, 255, planeYlength);
+				KernelSoftlight_pegtop <<<Yblocks, threads >>> (planeBnv, planeBnv, 0, 255, planeYlength);
+				break;
+			}
+			case 1: //illusions.hu
+			{
+				KernelSoftlight_illusionshu <<<Yblocks, threads >>> (planeRnv, planeRnv, 0, 255, planeYlength);
+				KernelSoftlight_illusionshu <<<Yblocks, threads >>> (planeGnv, planeGnv, 0, 255, planeYlength);
+				KernelSoftlight_illusionshu <<<Yblocks, threads >>> (planeBnv, planeBnv, 0, 255, planeYlength);
+				break;
+			}
+			case 2: //W3C
+			{
+				KernelSoftlight_W3C <<<Yblocks, threads >>> (planeRnv, planeRnv, 0, 255, planeYlength);
+				KernelSoftlight_W3C <<<Yblocks, threads >>> (planeGnv, planeGnv, 0, 255, planeYlength);
+				KernelSoftlight_W3C <<<Yblocks, threads >>> (planeBnv, planeBnv, 0, 255, planeYlength);
+			}
+			}
+		}
+
+		KernelRGB2YUV <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYpitch);
+
+		cudaMemcpy(planeY, planeYnv, planeYlength, cudaMemcpyDeviceToHost);
+		cudaMemcpy(planeU, planeUnv, planeUlength, cudaMemcpyDeviceToHost);
+		cudaMemcpy(planeV, planeVnv, planeVlength, cudaMemcpyDeviceToHost);
+
+		cudaFree(planeRnv);
+		cudaFree(planeGnv);
+		cudaFree(planeBnv);
+		cudaFree(planeYnv);
+		cudaFree(planeUnv);
+		cudaFree(planeVnv);
+	}
+	void CudaBoostSaturationYUV444(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int formula) {
+		unsigned char* planeYnv;
+		unsigned char* planeUnv;
+		unsigned char* planeVnv;
+
+		int planeYlength = planeYpitch * planeYheight;
+		int planeUlength = planeUpitch * planeUheight;
+		int planeVlength = planeVpitch * planeVheight;
+
+		int Yblocks = blocks(planeYlength, threads);
+		int Ublocks = blocks(planeUlength, threads);
+		int Vblocks = blocks(planeVlength, threads);
+
+		cudaMalloc(&planeYnv, Yblocks * threads * sizeof(char));
+		cudaMemcpy(planeYnv, planeY, planeYlength, cudaMemcpyHostToDevice);
+
+		cudaMalloc(&planeUnv, Ublocks * threads * sizeof(char));
+		cudaMemcpy(planeUnv, planeU, planeUlength, cudaMemcpyHostToDevice);
+
+		cudaMalloc(&planeVnv, Vblocks * threads * sizeof(char));
+		cudaMemcpy(planeVnv, planeV, planeVlength, cudaMemcpyHostToDevice);
+
+		unsigned char* planeRnv; cudaMalloc(&planeRnv, Yblocks * threads);
+		unsigned char* planeGnv; cudaMalloc(&planeGnv, Yblocks * threads);
+		unsigned char* planeBnv; cudaMalloc(&planeBnv, Yblocks * threads);
+
+		int hsvsize = blocks(planeYlength * sizeof(Npp32f), threads) * threads;
+
+		KernelYUV2RGB <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYpitch);
+
+		Npp32f* planeHSV_Hnv;
+		Npp32f* planeHSV_Snv;
+		Npp32f* planeHSV_Vnv;
+
+		cudaMalloc(&planeHSV_Hnv, hsvsize);
+		cudaMalloc(&planeHSV_Snv, hsvsize);
+		cudaMalloc(&planeHSV_Vnv, hsvsize);
+
+		KernelRGB2HSV_HV <<<Yblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeHSV_Hnv, planeHSV_Vnv, planeYlength);
+
+		switch (formula) {
+		case 0: //pegtop
+		{
+			KernelSoftlight_pegtop <<<Yblocks, threads >>> (planeRnv, planeRnv, 0, 255, planeYlength);
+			KernelSoftlight_pegtop <<<Yblocks, threads >>> (planeGnv, planeGnv, 0, 255, planeYlength);
+			KernelSoftlight_pegtop <<<Yblocks, threads >>> (planeBnv, planeBnv, 0, 255, planeYlength);
+			break;
+		}
+		case 1: //illusions.hu
+		{
+			KernelSoftlight_illusionshu <<<Yblocks, threads >>> (planeRnv, planeRnv, 0, 255, planeYlength);
+			KernelSoftlight_illusionshu <<<Yblocks, threads >>> (planeGnv, planeGnv, 0, 255, planeYlength);
+			KernelSoftlight_illusionshu <<<Yblocks, threads >>> (planeBnv, planeBnv, 0, 255, planeYlength);
+			break;
+		}
+		case 2: //W3C
+		{
+			KernelSoftlight_W3C <<<Yblocks, threads >>> (planeRnv, planeRnv, 0, 255, planeYlength);
+			KernelSoftlight_W3C <<<Yblocks, threads >>> (planeGnv, planeGnv, 0, 255, planeYlength);
+			KernelSoftlight_W3C <<<Yblocks, threads >>> (planeBnv, planeBnv, 0, 255, planeYlength);
+		}
+		}
+
+		KernelRGB2HSV_S <<<Yblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeHSV_Snv, planeYlength);
+
+		KernelHSV2RGB <<<Yblocks, threads >>> (planeHSV_Hnv, planeHSV_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, planeYlength);
+
+		KernelRGB2YUV <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYpitch);
+
+		cudaMemcpy(planeY, planeYnv, planeYlength, cudaMemcpyDeviceToHost);
+		cudaMemcpy(planeU, planeUnv, planeUlength, cudaMemcpyDeviceToHost);
+		cudaMemcpy(planeV, planeVnv, planeVlength, cudaMemcpyDeviceToHost);
+
+		cudaFree(planeRnv);
+		cudaFree(planeGnv);
+		cudaFree(planeBnv);
+		cudaFree(planeYnv);
+		cudaFree(planeUnv);
+		cudaFree(planeVnv);
+		cudaFree(planeHSV_Hnv);
+		cudaFree(planeHSV_Snv);
+		cudaFree(planeHSV_Vnv);
 	}
 
 	void CudaTV2PCYUV420(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads) {
@@ -1766,7 +2023,7 @@
 		unsigned char* planeGnv; cudaMalloc(&planeGnv, Yblocks * threads);
 		unsigned char* planeBnv; cudaMalloc(&planeBnv, Yblocks * threads);
 
-		KernelYUV420toRGB <<<Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYpitch, planeUpitch);
+		KernelYUV420toRGB <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYpitch, planeUpitch);
 
 		int rgbblocks = blocks(planeYheight * planeYwidth, threads);
 
@@ -1780,12 +2037,12 @@
 		cudaMalloc(&planeUnvFull, Yblocks * threads * sizeof(char));
 		cudaMalloc(&planeVnvFull, Yblocks * threads * sizeof(char));
 
-		KernelRGB2YUV << <Yblocks, threads >> > (planeYnv, planeUnvFull, planeVnvFull, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYpitch);
+		KernelRGB2YUV <<<Yblocks, threads >>> (planeYnv, planeUnvFull, planeVnvFull, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYpitch);
 
 		int shrinkblocks = blocks(planeYwidth * planeYheight / 4, threads);
 
-		KernelUVShrink << <shrinkblocks, threads >> > (planeUnvFull, planeUnv, planeYwidth, planeYheight, planeYpitch, planeUpitch, planeYwidth * planeYheight / 4);
-		KernelUVShrink << <shrinkblocks, threads >> > (planeVnvFull, planeVnv, planeYwidth, planeYheight, planeYpitch, planeVpitch, planeYwidth * planeYheight / 4);
+		KernelUVShrink <<<shrinkblocks, threads >>> (planeUnvFull, planeUnv, planeYwidth, planeYheight, planeYpitch, planeUpitch, planeYwidth * planeYheight / 4);
+		KernelUVShrink <<<shrinkblocks, threads >>> (planeVnvFull, planeVnv, planeYwidth, planeYheight, planeYpitch, planeVpitch, planeYwidth * planeYheight / 4);
 
 		cudaFree(planeUnvFull);
 		cudaFree(planeVnvFull);
@@ -1835,7 +2092,7 @@
 		KernelTV2PC <<<rgbblocks, threads >>> (planeGnv, planeYheight * planeYwidth);
 		KernelTV2PC <<<rgbblocks, threads >>> (planeBnv, planeYheight * planeYwidth);
 
-		KernelRGB2YUV <<<Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYpitch);
+		KernelRGB2YUV <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYpitch);
 
 		cudaMemcpy(planeY, planeYnv, planeYlength, cudaMemcpyDeviceToHost);
 		cudaMemcpy(planeU, planeUnv, planeUlength, cudaMemcpyDeviceToHost);
@@ -1848,7 +2105,6 @@
 		cudaFree(planeUnv);
 		cudaFree(planeVnv);
 	}
-	
 	void CudaTV2PCRGB32(unsigned char* plane, int planeheight, int planewidth, int planepitch, int threads) {
 
 		int bgrLength = planeheight * planepitch;
@@ -1863,7 +2119,7 @@
 		unsigned char* planeBGRnv; cudaMalloc(&planeBGRnv, bgrblocks * threads);
 
 		cudaMemcpy(planeBGRnv, plane, bgrLength, cudaMemcpyHostToDevice);
-		KernelBGRtoRGB << <bgrblocks, threads >> > (planeRnv, planeGnv, planeBnv, planeBGRnv, planewidth, planeheight, planewidth, planepitch);
+		KernelBGRtoRGB <<<bgrblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeBGRnv, planewidth, planeheight, planewidth, planepitch);
 
 		int rgbblocks = blocks(planeheight * planewidth, threads);
 
@@ -1880,6 +2136,33 @@
 		cudaFree(planeBnv);
 		cudaFree(planeBGRnv);
 	}
+	void CudaTV2PCRGB(unsigned char* planeR, unsigned char* planeG, unsigned char* planeB, int planeheight, int planewidth, int planepitch, int threads) {
+
+		int planeYlength = planeheight * planewidth;
+		int Yblocks = blocks(planeYlength, threads);
+
+		unsigned char* planeRnv; cudaMalloc(&planeRnv, Yblocks * threads);
+		unsigned char* planeGnv; cudaMalloc(&planeGnv, Yblocks * threads);
+		unsigned char* planeBnv; cudaMalloc(&planeBnv, Yblocks * threads);
+
+		cudaMemcpy(planeRnv, planeR, planeYlength, cudaMemcpyHostToDevice);
+		cudaMemcpy(planeGnv, planeG, planeYlength, cudaMemcpyHostToDevice);
+		cudaMemcpy(planeBnv, planeB, planeYlength, cudaMemcpyHostToDevice);
+
+		int rgbblocks = blocks(planeheight * planewidth, threads);
+
+		KernelTV2PC <<<rgbblocks, threads >>> (planeRnv, planeheight * planewidth);
+		KernelTV2PC <<<rgbblocks, threads >>> (planeGnv, planeheight * planewidth);
+		KernelTV2PC <<<rgbblocks, threads >>> (planeBnv, planeheight * planewidth);
+
+		cudaMemcpy(planeR, planeRnv, planeYlength, cudaMemcpyDeviceToHost);
+		cudaMemcpy(planeG, planeGnv, planeYlength, cudaMemcpyDeviceToHost);
+		cudaMemcpy(planeB, planeBnv, planeYlength, cudaMemcpyDeviceToHost);
+
+		cudaFree(planeRnv);
+		cudaFree(planeGnv);
+		cudaFree(planeBnv);
+	}
 
 	void CudaGrayscaleRGB32(unsigned char* plane, int planeheight, int planewidth, int planepitch, int threads) {
 
@@ -1895,7 +2178,7 @@
 		unsigned char* planeBGRnv; cudaMalloc(&planeBGRnv, bgrblocks * threads);
 
 		cudaMemcpy(planeBGRnv, plane, bgrLength, cudaMemcpyHostToDevice);
-		KernelBGRtoRGB <<<bgrblocks, threads >> > (planeRnv, planeGnv, planeBnv, planeBGRnv, planewidth, planeheight, planewidth, planepitch);
+		KernelBGRtoRGB <<<bgrblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeBGRnv, planewidth, planeheight, planewidth, planepitch);
 
 		unsigned char* planeYnv; cudaMalloc(&planeYnv, Yblocks * threads);
 		unsigned char* planeUnv; cudaMalloc(&planeUnv, Yblocks * threads);
@@ -1905,13 +2188,47 @@
 		cudaMemset(planeUnv, 128, planewidth * planeheight);
 		cudaMemset(planeVnv, 128, planewidth * planeheight);
 		KernelYUV2RGB <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planewidth, planeheight, planewidth);
-		KernelRGBtoBGR << <Yblocks, threads >> > (planeRnv, planeGnv, planeBnv, planeBGRnv, planewidth, planeheight, planewidth, planepitch);
+		KernelRGBtoBGR <<<Yblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeBGRnv, planewidth, planeheight, planewidth, planepitch);
 		cudaMemcpy(plane, planeBGRnv, bgrLength, cudaMemcpyDeviceToHost);
 
 		cudaFree(planeRnv);
 		cudaFree(planeGnv);
 		cudaFree(planeBnv);
 		cudaFree(planeBGRnv);
+
+		cudaFree(planeYnv);
+		cudaFree(planeUnv);
+		cudaFree(planeVnv);
+	}
+	void CudaGrayscaleRGB(unsigned char* planeR, unsigned char* planeG, unsigned char* planeB, int planeheight, int planewidth, int planepitch, int threads) {
+
+		int planeYlength = planeheight * planewidth;
+		int Yblocks = blocks(planeYlength, threads);
+
+		unsigned char* planeRnv; cudaMalloc(&planeRnv, Yblocks * threads);
+		unsigned char* planeGnv; cudaMalloc(&planeGnv, Yblocks * threads);
+		unsigned char* planeBnv; cudaMalloc(&planeBnv, Yblocks * threads);
+
+		cudaMemcpy(planeRnv, planeR, planeYlength, cudaMemcpyHostToDevice);
+		cudaMemcpy(planeGnv, planeG, planeYlength, cudaMemcpyHostToDevice);
+		cudaMemcpy(planeBnv, planeB, planeYlength, cudaMemcpyHostToDevice);
+
+		unsigned char* planeYnv; cudaMalloc(&planeYnv, Yblocks * threads);
+		unsigned char* planeUnv; cudaMalloc(&planeUnv, Yblocks * threads);
+		unsigned char* planeVnv; cudaMalloc(&planeVnv, Yblocks * threads);
+
+		KernelRGB2YUV <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planewidth, planeheight, planewidth);
+		cudaMemset(planeUnv, 128, planewidth * planeheight);
+		cudaMemset(planeVnv, 128, planewidth * planeheight);
+		KernelYUV2RGB <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planewidth, planeheight, planewidth);
+
+		cudaMemcpy(planeR, planeRnv, planeYlength, cudaMemcpyDeviceToHost);
+		cudaMemcpy(planeG, planeGnv, planeYlength, cudaMemcpyDeviceToHost);
+		cudaMemcpy(planeB, planeBnv, planeYlength, cudaMemcpyDeviceToHost);
+
+		cudaFree(planeRnv);
+		cudaFree(planeGnv);
+		cudaFree(planeBnv);
 
 		cudaFree(planeYnv);
 		cudaFree(planeUnv);
