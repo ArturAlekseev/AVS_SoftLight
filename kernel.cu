@@ -456,7 +456,7 @@
 
 		int row = i / Ypitch;
 
-		Npp32f C = (Npp32f)planeY[i] - 16;
+		Npp32f C = (Npp32f)planeY[i]; //limited rage -16
 		Npp32f D = (Npp32f)planeU[i] - 128;
 		Npp32f E = (Npp32f)planeV[i] - 128;
 
@@ -483,7 +483,7 @@
 		int position = i % Ypitch;
 		int UVoffset = position / 2 + Upitch * (row / 2);
 
-		Npp32f C = (Npp32f)planeY[i] - 16;
+		Npp32f C = (Npp32f)planeY[i]; //limited range -16
 		Npp32f D = (Npp32f)planeU[UVoffset] - 128;
 		Npp32f E = (Npp32f)planeV[UVoffset] - 128;
 
@@ -513,7 +513,7 @@
 		Npp32f G = planeG[row * width + position];
 		Npp32f B = planeB[row * width + position];
 
-		Npp32f Y = round(0.256788 * R + 0.504129 * G + 0.097906 * B) + 16;
+		Npp32f Y = round(0.256788 * R + 0.504129 * G + 0.097906 * B); //limited range + 16
 		Npp32f U = round(-0.148223 * R - 0.290993 * G + 0.439216 * B) + 128;
 		Npp32f V = round(0.439216 * R - 0.367788 * G - 0.071427 * B) + 128;
 		planeY[row * Ypitch + position] = (unsigned char)Y;
@@ -538,7 +538,29 @@
 		planeO[row * pitchO + position] = (unsigned char)E;
 	}
 	
-//Parallel sum functions	
+//Parallel sum functions
+
+	__global__ void reduceBlacks(unsigned char* input, unsigned int* output, int length) {
+		extern __shared__ unsigned int sdata[];
+		unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+		unsigned int tid = threadIdx.x;
+		if (i >= length)
+			sdata[tid] = 0;
+		else
+		{
+			if (input[i] == 0)
+				sdata[tid] = 1;
+			else sdata[tid] = 0;
+		}
+
+		__syncthreads();
+		for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1) {
+			if (tid < s)
+				sdata[tid] += sdata[tid + s];
+			__syncthreads();
+		}
+		if (tid == 0) output[blockIdx.x] = sdata[0];
+	}
 	__global__ void reduceChar(unsigned char * input, unsigned int * output, int length) {
 		extern __shared__ unsigned int sdata[];
 		unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -659,7 +681,34 @@
 			cudaFree(reducelast);
 		}
 	}
-
+	void CudaCountBlacksNV(unsigned char* buf, int length, unsigned long long* result, unsigned int maxthreads) {
+		int blocks = length / maxthreads;
+		if (length % maxthreads > 0) blocks += 1;
+		unsigned int* reduceout = 0;
+		int resultblocks = blocks / maxthreads;
+		if (blocks % maxthreads > 0) resultblocks += 1;
+		cudaMalloc((void**)&reduceout, resultblocks * maxthreads * sizeof(int)); //change size
+		reduceBlacks <<<blocks, maxthreads, maxthreads * sizeof(int) >>> (buf, reduceout, length); //sdata should be 2^x size
+		//final
+		if (blocks <= 100) { //if just 100 sum by processor
+			unsigned int* tosum = new unsigned int[blocks];
+			cudaMemcpy(tosum, reduceout, blocks * sizeof(int), cudaMemcpyDeviceToHost);
+			for (int i = 0; i != blocks; i++) *result += tosum[i];
+			delete[] tosum;
+			cudaFree(reduceout);
+		}
+		else {
+			unsigned int* reducelast = 0;
+			cudaMalloc(&reducelast, resultblocks * sizeof(int));
+			reduceInt << <resultblocks, maxthreads, maxthreads * sizeof(int) >> > (reduceout, reducelast, length);
+			cudaFree(reduceout);
+			unsigned int* tosum = new unsigned int[blocks];
+			cudaMemcpy(tosum, reducelast, resultblocks * sizeof(int), cudaMemcpyDeviceToHost);
+			for (int i = 0; i != resultblocks; i++) *result += tosum[i];
+			delete[] tosum;
+			cudaFree(reducelast);
+		}
+	}
 //Other functions
 
 	__global__ void KernelTV2PC(unsigned char* buf, int length)
@@ -688,7 +737,7 @@
 
 //Main functions
 
-	void CudaNeutralizeRGB(unsigned char* planeR, unsigned char* planeG, unsigned char* planeB, int planeheight, int planewidth, int planepitch, int threads, int type, int formula) {
+	void CudaNeutralizeRGB(unsigned char* planeR, unsigned char* planeG, unsigned char* planeB, int planeheight, int planewidth, int planepitch, int threads, int type, int formula, bool skipblack) {
 
 		int planeYlength = planeheight * planewidth;
 		int Yblocks = blocks(planeYlength, threads);
@@ -733,9 +782,21 @@
 		CudaSumNV(planeBnv, planeYlength, &Bsum, threads);
 
 		int length = planewidth * planeheight;
-		Rsum /= length;
-		Gsum /= length;
-		Bsum /= length;
+		unsigned long long rblacks = 0, gblacks = 0, bblacks = 0;
+		if (skipblack) {
+			CudaCountBlacksNV(planeRnv, planeYlength, &rblacks, threads);
+			CudaCountBlacksNV(planeGnv, planeYlength, &gblacks, threads);
+			CudaCountBlacksNV(planeBnv, planeYlength, &bblacks, threads);
+			Rsum /= length - rblacks;
+			Gsum /= length - gblacks;
+			Bsum /= length - bblacks;
+		}
+		else
+		{
+			Rsum /= length;
+			Gsum /= length;
+			Bsum /= length;
+		}
 		Rsum = 255 - Rsum;
 		Gsum = 255 - Gsum;
 		Bsum = 255 - Bsum;
@@ -821,7 +882,7 @@
 			cudaFree(planeHSV_Snv);
 		}
 	}
-	void CudaNeutralizeRGBwithLight(unsigned char* planeR, unsigned char* planeG, unsigned char* planeB, int planeheight, int planewidth, int planepitch, int threads, int type, int formula)
+	void CudaNeutralizeRGBwithLight(unsigned char* planeR, unsigned char* planeG, unsigned char* planeB, int planeheight, int planewidth, int planepitch, int threads, int type, int formula, bool skipblack)
 	{
 		int planeYlength = planeheight * planewidth;
 		int Yblocks = blocks(planeYlength, threads);
@@ -843,9 +904,21 @@
 		CudaSumNV(planeBnv, planeYlength, &Bsum, threads);
 
 		int length = planewidth * planeheight;
-		Rsum /= length;
-		Gsum /= length;
-		Bsum /= length;
+		unsigned long long rblacks = 0, gblacks = 0, bblacks = 0;
+		if (skipblack) {
+			CudaCountBlacksNV(planeRnv, planeYlength, &rblacks, threads);
+			CudaCountBlacksNV(planeGnv, planeYlength, &gblacks, threads);
+			CudaCountBlacksNV(planeBnv, planeYlength, &bblacks, threads);
+			Rsum /= length - rblacks;
+			Gsum /= length - gblacks;
+			Bsum /= length - bblacks;
+		}
+		else
+		{
+			Rsum /= length;
+			Gsum /= length;
+			Bsum /= length;
+		}
 		Rsum = 255 - Rsum;
 		Gsum = 255 - Gsum;
 		Bsum = 255 - Bsum;
@@ -972,7 +1045,7 @@
 		cudaFree(planeHSV_Vnv);
 	}
 	
-	void CudaNeutralizeRGB32(unsigned char* plane, int planeheight, int planewidth, int planepitch, int threads, int type, int formula) {
+	void CudaNeutralizeRGB32(unsigned char* plane, int planeheight, int planewidth, int planepitch, int threads, int type, int formula, bool skipblack) {
 
 		int bgrLength = planeheight * planepitch;
 		int bgrblocks = blocks(bgrLength, threads);
@@ -1020,9 +1093,21 @@
 		CudaSumNV(planeBnv, planeYlength, &Bsum, threads);
 
 		int length = planewidth * planeheight;
-		Rsum /= length;
-		Gsum /= length;
-		Bsum /= length;
+		unsigned long long rblacks = 0, gblacks = 0, bblacks = 0;
+		if (skipblack) {
+			CudaCountBlacksNV(planeRnv, planeYlength, &rblacks, threads);
+			CudaCountBlacksNV(planeGnv, planeYlength, &gblacks, threads);
+			CudaCountBlacksNV(planeBnv, planeYlength, &bblacks, threads);
+			Rsum /= length - rblacks;
+			Gsum /= length - gblacks;
+			Bsum /= length - bblacks;
+		}
+		else
+		{
+			Rsum /= length;
+			Gsum /= length;
+			Bsum /= length;
+		}
 		Rsum = 255 - Rsum;
 		Gsum = 255 - Gsum;
 		Bsum = 255 - Bsum;
@@ -1109,7 +1194,7 @@
 			cudaFree(planeHSV_Snv);
 		}
 	}
-	void CudaNeutralizeRGB32withLight(unsigned char* plane, int planeheight, int planewidth, int planepitch, int threads, int type, int formula)
+	void CudaNeutralizeRGB32withLight(unsigned char* plane, int planeheight, int planewidth, int planepitch, int threads, int type, int formula, bool skipblack)
 	{
 		int bgrLength = planeheight * planepitch;
 		int bgrblocks = blocks(bgrLength, threads);
@@ -1134,9 +1219,21 @@
 		CudaSumNV(planeBnv, planeYlength, &Bsum, threads);
 
 		int length = planewidth * planeheight;
-		Rsum /= length;
-		Gsum /= length;
-		Bsum /= length;
+		unsigned long long rblacks = 0, gblacks = 0, bblacks = 0;
+		if (skipblack) {
+			CudaCountBlacksNV(planeRnv, planeYlength, &rblacks, threads);
+			CudaCountBlacksNV(planeGnv, planeYlength, &gblacks, threads);
+			CudaCountBlacksNV(planeBnv, planeYlength, &bblacks, threads);
+			Rsum /= length - rblacks;
+			Gsum /= length - gblacks;
+			Bsum /= length - bblacks;
+		}
+		else
+		{
+			Rsum /= length;
+			Gsum /= length;
+			Bsum /= length;
+		}
 		Rsum = 255 - Rsum;
 		Gsum = 255 - Gsum;
 		Bsum = 255 - Bsum;
@@ -1268,7 +1365,7 @@
 		cudaFree(planeHSV_Vnv);
 	}
 
-	void CudaNeutralizeYUV420byRGB(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula)
+	void CudaNeutralizeYUV420byRGB(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, bool skipblack)
 	{
 		unsigned char* planeYnv;
 		unsigned char* planeUnv;
@@ -1329,9 +1426,22 @@
 		CudaSumNV(planeBnv, planeYlength, &Bsum, threads);
 
 		int length = planeYwidth * planeYheight;
-		Rsum /= length;
-		Gsum /= length;
-		Bsum /= length;
+		unsigned long long rblacks = 0, gblacks = 0, bblacks = 0;
+		if (skipblack) {
+			CudaCountBlacksNV(planeRnv, planeYlength, &rblacks, threads);
+			CudaCountBlacksNV(planeGnv, planeYlength, &gblacks, threads);
+			CudaCountBlacksNV(planeBnv, planeYlength, &bblacks, threads);
+			Rsum /= length - rblacks;
+			Gsum /= length - gblacks;
+			Bsum /= length - bblacks;
+		}
+		else
+		{
+			Rsum /= length;
+			Gsum /= length;
+			Bsum /= length;
+		}
+
 		Rsum = 255 - Rsum;
 		Gsum = 255 - Gsum;
 		Bsum = 255 - Bsum;
@@ -1435,7 +1545,7 @@
 			cudaFree(planeHSV_Snv);
 		}
 	}
-	void CudaNeutralizeYUV420byRGBwithLight(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula)
+	void CudaNeutralizeYUV420byRGBwithLight(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, bool skipblack)
 	{
 		unsigned char* planeYnv;
 		unsigned char* planeUnv;
@@ -1471,9 +1581,21 @@
 		CudaSumNV(planeBnv, planeYlength, &Bsum, threads);
 
 		int length = planeYwidth * planeYheight;
-		Rsum /= length;
-		Gsum /= length;
-		Bsum /= length;
+		unsigned long long rblacks = 0, gblacks = 0, bblacks = 0;
+		if (skipblack) {
+			CudaCountBlacksNV(planeRnv, planeYlength, &rblacks, threads);
+			CudaCountBlacksNV(planeGnv, planeYlength, &gblacks, threads);
+			CudaCountBlacksNV(planeBnv, planeYlength, &bblacks, threads);
+			Rsum /= length - rblacks;
+			Gsum /= length - gblacks;
+			Bsum /= length - bblacks;
+		}
+		else
+		{
+			Rsum /= length;
+			Gsum /= length;
+			Bsum /= length;
+		}
 		Rsum = 255 - Rsum;
 		Gsum = 255 - Gsum;
 		Bsum = 255 - Bsum;
@@ -1653,7 +1775,7 @@
 		cudaFree(planeHSV_Vnv);
 	}
 
-	void CudaNeutralizeYUV444byRGB(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula)
+	void CudaNeutralizeYUV444byRGB(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, bool skipblack)
 	{
 		unsigned char* planeYnv;
 		unsigned char* planeUnv;
@@ -1714,9 +1836,21 @@
 		CudaSumNV(planeBnv, planeYlength, &Bsum, threads);
 
 		int length = planeYwidth * planeYheight;
-		Rsum /= length;
-		Gsum /= length;
-		Bsum /= length;
+		unsigned long long rblacks = 0, gblacks = 0, bblacks = 0;
+		if (skipblack) {
+			CudaCountBlacksNV(planeRnv, planeYlength, &rblacks, threads);
+			CudaCountBlacksNV(planeGnv, planeYlength, &gblacks, threads);
+			CudaCountBlacksNV(planeBnv, planeYlength, &bblacks, threads);
+			Rsum /= length - rblacks;
+			Gsum /= length - gblacks;
+			Bsum /= length - bblacks;
+		}
+		else
+		{
+			Rsum /= length;
+			Gsum /= length;
+			Bsum /= length;
+		}
 		Rsum = 255 - Rsum;
 		Gsum = 255 - Gsum;
 		Bsum = 255 - Bsum;
@@ -1806,7 +1940,7 @@
 			cudaFree(planeHSV_Snv);
 		}
 	}
-	void CudaNeutralizeYUV444byRGBwithLight(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula)
+	void CudaNeutralizeYUV444byRGBwithLight(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, bool skipblack)
 	{
 		unsigned char* planeYnv;
 		unsigned char* planeUnv;
@@ -1842,9 +1976,21 @@
 		CudaSumNV(planeBnv, planeYlength, &Bsum, threads);
 
 		int length = planeYwidth * planeYheight;
-		Rsum /= length;
-		Gsum /= length;
-		Bsum /= length;
+		unsigned long long rblacks = 0, gblacks = 0, bblacks = 0;
+		if (skipblack) {
+			CudaCountBlacksNV(planeRnv, planeYlength, &rblacks, threads);
+			CudaCountBlacksNV(planeGnv, planeYlength, &gblacks, threads);
+			CudaCountBlacksNV(planeBnv, planeYlength, &bblacks, threads);
+			Rsum /= length - rblacks;
+			Gsum /= length - gblacks;
+			Bsum /= length - bblacks;
+		}
+		else
+		{
+			Rsum /= length;
+			Gsum /= length;
+			Bsum /= length;
+		}
 		Rsum = 255 - Rsum;
 		Gsum = 255 - Gsum;
 		Bsum = 255 - Bsum;

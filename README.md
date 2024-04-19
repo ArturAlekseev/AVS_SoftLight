@@ -68,8 +68,12 @@ Formulas are explained here: https://en.wikipedia.org/wiki/Blend_modes
 
 Usage AviSynth:
 
-Softlight() same as SoftLight(0,0) same as SoftLight(mode=0,formula=0)
+Softlight() same as SoftLight(0,0,1) same as SoftLight(mode=0,formula=0,skipblack=1)
 
 Usage VapourSynth:
 
-video = core.Argaricolm.Softlight(video) or core.Argaricolm.Softlight(video,mode=0,formula=0)
+video = core.Argaricolm.Softlight(video) or core.Argaricolm.Softlight(video,mode=0,formula=0,skipblack=1)
+
+Skipblack option:
+This option is used only when average is calculated.
+By default this option is true (1). When true - color level 0 (in 0-255) will be skipped from average calculation. This results in more "correct" average (and will not count black bars if they are 0 black). But will be a little slower.
