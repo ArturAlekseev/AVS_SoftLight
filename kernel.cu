@@ -456,13 +456,13 @@
 
 		int row = i / Ypitch;
 
-		Npp32f C = (Npp32f)planeY[i]; //limited rage -16
+		Npp32f C = (Npp32f)planeY[i];
 		Npp32f D = (Npp32f)planeU[i] - 128;
 		Npp32f E = (Npp32f)planeV[i] - 128;
 
-		Npp32f Rf = round(1.164383 * C + 1.596027 * E);
-		Npp32f Gf = round(1.164383 * C - (0.391762 * D) - (0.812968 * E));
-		Npp32f Bf = round(1.164383 * C + 2.017232 * D);
+		Npp32f Rf = round(C + 1.4075 * E);
+		Npp32f Gf = round(C - 0.3455 * D - 0.7169 * E);
+		Npp32f Bf = round(C + 1.7790 * D);
 
 		unsigned char R, G, B;
 		if (Rf > 255) R = 255; else if (Rf < 0) R = 0; else R = (unsigned char)Rf;
@@ -483,13 +483,13 @@
 		int position = i % Ypitch;
 		int UVoffset = position / 2 + Upitch * (row / 2);
 
-		Npp32f C = (Npp32f)planeY[i]; //limited range -16
+		Npp32f C = (Npp32f)planeY[i];
 		Npp32f D = (Npp32f)planeU[UVoffset] - 128;
 		Npp32f E = (Npp32f)planeV[UVoffset] - 128;
 
-		Npp32f Rf = round(1.164383 * C + 1.596027 * E);
-		Npp32f Gf = round(1.164383 * C - (0.391762 * D) - (0.812968 * E));
-		Npp32f Bf = round(1.164383 * C + 2.017232 * D);
+		Npp32f Rf = round(C + 1.4075 * E);
+		Npp32f Gf = round(C - 0.3455 * D - 0.7169 * E);
+		Npp32f Bf = round(C + 1.7790 * D);
 
 		unsigned char R, G, B;
 		if (Rf > 255) R = 255; else if (Rf < 0) R = 0; else R = (unsigned char)Rf;
@@ -513,9 +513,9 @@
 		Npp32f G = planeG[row * width + position];
 		Npp32f B = planeB[row * width + position];
 
-		Npp32f Y = round(0.256788 * R + 0.504129 * G + 0.097906 * B); //limited range + 16
-		Npp32f U = round(-0.148223 * R - 0.290993 * G + 0.439216 * B) + 128;
-		Npp32f V = round(0.439216 * R - 0.367788 * G - 0.071427 * B) + 128;
+		Npp32f Y = round(R * .299000 + G * .587000 + B * .114000);
+		Npp32f U = round(R * -.168736 + G * -.331264 + B * .500000 + 128);
+		Npp32f V = round(R * .500000 + G * -.418688 + B * -.081312 + 128);
 		planeY[row * Ypitch + position] = (unsigned char)Y;
 		planeU[row * Ypitch + position] = (unsigned char)U;
 		planeV[row * Ypitch + position] = (unsigned char)V;
