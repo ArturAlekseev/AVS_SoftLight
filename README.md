@@ -2,7 +2,7 @@
 AviSynth Softlight plugin
 
 Realization of cuda soflight negative average blend.
-Plugin is x64 (CUDA toolkit 12.3)
+Plugin is x64 (CUDA toolkit 12.4 & 11.8)
 
 You could see on youtube videos about removing color cast using photoshops softlight blend of negative average. This is a cuda realization of it that process every frame.
 
@@ -50,8 +50,8 @@ TV to PC color range conversion (use it on videos where you see no total black a
 
 10 mode:
 Grayscale.
-For RGB32 - this mode uses RGB -> YUV444 -> RGB cuda conversion. U & V planes are set to 128.
-For YUV - just U & V planes are set to 128 without cuda.
+For RGB32 - this mode uses RGB -> YUV444 -> RGB cuda conversion. U & V planes are set to 128 (and 512 on 10 bit).
+For YUV - just U & V planes are set to 128 (or 512 for 10bit) without cuda.
 
 You can use 3 different softlight formulas:
 formula = 0,1,2
@@ -74,6 +74,21 @@ Usage VapourSynth:
 
 video = core.Argaricolm.Softlight(video) or core.Argaricolm.Softlight(video,mode=0,formula=0,skipblack=1)
 
-Skipblack option:
-This option is used only when average is calculated.
-By default this option is true (1). When true - color level 0 (in 0-255) will be skipped from average calculation. This results in more "correct" average (and will not count black bars if they are 0 black). But will be a little slower.
+Skipblack option is a new enhancement for averate calculation. By default skipblack = 0 and it means it is activated.
+To disable it - set it to anything not zero (like 1).
+What it does is calculates how many channel elements are zero. Then they will not be counted in average calculation.
+Example:
+Original: (1 + 2 + 0) / 3 = 1 average
+With skipblack enabled: (1 + 2 + 0) / 2 = 1.5 average
+
+Color modes supported so far:
+Avisynth:
+* Planar YUV 420 8 bit and 10 bit (YUV420P8, YUV420P10)
+* Planar YUV 444 8 bit and 10 bit (YUV444P8, YUV444P10)
+* Not planar RGB32 (BGR32) - this one is default you get by using ConvertToRGB() or ConvertToRGB32()
+* Planar RGB 8 bit and 10 bit (you get it by using ConvertToPlanarRGB()
+Same for VapourSynth except BGR32 (Fredrik "asked" not to implement it in VapourSynth plugins)
+
+Compilation:
+Install CUDA Toolkit and just compile.
+If you want to compile for 11.8 version just change 12.4 to 11.8 in vcxproj file.
