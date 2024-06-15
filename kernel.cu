@@ -2083,50 +2083,50 @@
 
 //Other functions
 
-	__global__ void KernelTV2PC(unsigned char* buf, int length)
+	__global__ void KernelTV2PC(unsigned char* buf, int length, int rangemin, int rangemax)
 	{
 		int i = blockIdx.x * blockDim.x + threadIdx.x;
 		if (i < length) {
 			unsigned char c = buf[i];
-			if (c <= 16) c = 0; //lowerst
+			if (c <= rangemin) c = 0; //lowerst
 			else
-				if (c >= 235) c = 255; //max
+				if (c >= rangemax) c = 255; //max
 				else
 				{ //16-235
 					Npp32f cf = c;
-					cf = (cf - 16) / 219;
+					cf = (cf - rangemin) / (rangemax - rangemin);
 					cf = cf * 255;
 					c = (unsigned char)cf;
 				}
 			buf[i] = c;
 		}
 	}
-	__global__ void KernelTV2PC(unsigned short* buf, int length)
+	__global__ void KernelTV2PC(unsigned short* buf, int length, int rangemin, int rangemax)
 	{
 		int i = blockIdx.x * blockDim.x + threadIdx.x;
 		if (i < length) {
 			unsigned short c = buf[i];
-			if (c <= 64) c = 0; //lowerst
+			if (c <= rangemin) c = 0; //lowerst
 			else
-				if (c >= 943) c = 1023; //max
+				if (c >= rangemax) c = 1023; //max
 				else
 				{ //16-235
 					Npp32f cf = c;
-					cf = (cf - 64) / 879;
+					cf = (cf - rangemin) / (rangemax - rangemin);
 					cf = cf * 1023;
 					c = (unsigned short)cf;
 				}
 			buf[i] = c;
 		}
 	}
-	__global__ void KernelTV2PC(Npp32f* buf, int length)
+	__global__ void KernelTV2PC(Npp32f* buf, int length, int rangemin, int rangemax)
 	{
 		int i = blockIdx.x * blockDim.x + threadIdx.x;
 		if (i < length) {
 			Npp32f c = buf[i];
-			static Npp32f lowlimit = 16.0 / 255.0;
-			static Npp32f highlimit = 235.0 / 255.0;
-			static Npp32f range = 219.0 / 255.0;
+			Npp32f lowlimit = rangemin / 255.0;
+			Npp32f highlimit = rangemax / 255.0;
+			Npp32f range = (rangemax-rangemin) / 255.0;
 			if (c <= lowlimit) c = 0.0; //lowerst
 			else
 				if (c >= highlimit) c = 1.0; //max
@@ -2168,6 +2168,7 @@
 			buf[i] = c;
 		}
 	}
+	
 	__global__ void KernelOETF(unsigned char* buf, int length)
 	{
 		int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -2201,7 +2202,6 @@
 			buf[i] = cf;
 		}
 	}
-
 	__global__ void KernelEOTF(unsigned char* buf, int length)
 	{
 		int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -3712,7 +3712,7 @@
 		cudaFree(planeHSV_Vnv);
 	}
 
-	void CudaTV2PCYUV420(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int yuvin, int yuvout) {
+	void CudaTV2PCYUV420(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int yuvin, int yuvout, int rangemin, int rangemax) {
 		unsigned char* planeYnv;
 		unsigned char* planeUnv;
 		unsigned char* planeVnv;
@@ -3750,9 +3750,15 @@
 
 		int rgbblocks = blocks(length, threads);
 
-		KernelTV2PC <<<rgbblocks, threads>>> (planeRnv, length);
-		KernelTV2PC <<<rgbblocks, threads>>> (planeGnv, length);
-		KernelTV2PC <<<rgbblocks, threads>>> (planeBnv, length);
+		if (rangemin >= rangemax)
+		{
+			rangemin = 16;
+			rangemax = 235;
+		}
+
+		KernelTV2PC <<<rgbblocks, threads>>> (planeRnv, length, rangemin, rangemax);
+		KernelTV2PC <<<rgbblocks, threads>>> (planeGnv, length, rangemin, rangemax);
+		KernelTV2PC <<<rgbblocks, threads>>> (planeBnv, length, rangemin, rangemax);
 
 		//allocate full UV planes buffers:
 		unsigned char* planeUnvFull;
@@ -3787,7 +3793,7 @@
 		cudaFree(planeUnv);
 		cudaFree(planeVnv);
 	}
-	void CudaTV2PCYUV444(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int yuvin, int yuvout) {
+	void CudaTV2PCYUV444(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int yuvin, int yuvout, int rangemin, int rangemax) {
 		unsigned char* planeYnv;
 		unsigned char* planeUnv;
 		unsigned char* planeVnv;
@@ -3827,9 +3833,15 @@
 
 		int rgbblocks = blocks(length, threads);
 
-		KernelTV2PC <<<rgbblocks, threads >>> (planeRnv, length);
-		KernelTV2PC <<<rgbblocks, threads >>> (planeGnv, length);
-		KernelTV2PC <<<rgbblocks, threads >>> (planeBnv, length);
+		if (rangemin >= rangemax)
+		{
+			rangemin = 16;
+			rangemax = 235;
+		}
+
+		KernelTV2PC <<<rgbblocks, threads >>> (planeRnv, length, rangemin, rangemax);
+		KernelTV2PC <<<rgbblocks, threads >>> (planeGnv, length, rangemin, rangemax);
+		KernelTV2PC <<<rgbblocks, threads >>> (planeBnv, length, rangemin, rangemax);
 
 		switch (yuvout)
 		{
@@ -3850,7 +3862,7 @@
 		cudaFree(planeUnv);
 		cudaFree(planeVnv);
 	}
-	void CudaTV2PCRGB32(unsigned char* plane, int planeheight, int planewidth, int planepitch, int threads) {
+	void CudaTV2PCRGB32(unsigned char* plane, int planeheight, int planewidth, int planepitch, int threads, int rangemin, int rangemax) {
 		int bgrLength = planeheight * planepitch;
 		int bgrblocks = blocks(bgrLength / 4, threads);
 
@@ -3865,9 +3877,15 @@
 		cudaMemcpy(planeBGRnv, plane, bgrLength, cudaMemcpyHostToDevice);
 		KernelBGRtoRGB <<<bgrblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeBGRnv, planewidth, planeheight, planewidth, planepitch);
 
-		KernelTV2PC <<<rgbblocks, threads >>> (planeRnv, length);
-		KernelTV2PC <<<rgbblocks, threads >>> (planeGnv, length);
-		KernelTV2PC <<<rgbblocks, threads >>> (planeBnv, length);
+		if (rangemin >= rangemax)
+		{
+			rangemin = 16;
+			rangemax = 235;
+		}
+
+		KernelTV2PC <<<rgbblocks, threads >>> (planeRnv, length, rangemin, rangemax);
+		KernelTV2PC <<<rgbblocks, threads >>> (planeGnv, length, rangemin, rangemax);
+		KernelTV2PC <<<rgbblocks, threads >>> (planeBnv, length, rangemin, rangemax);
 
 		KernelRGBtoBGR <<<rgbblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeBGRnv, planewidth, planeheight, planewidth, planepitch);
 
@@ -3878,7 +3896,7 @@
 		cudaFree(planeBnv);
 		cudaFree(planeBGRnv);
 	}
-	void CudaTV2PCRGB(unsigned char* planeR, unsigned char* planeG, unsigned char* planeB, int planeheight, int planewidth, int planepitch, int threads) {
+	void CudaTV2PCRGB(unsigned char* planeR, unsigned char* planeG, unsigned char* planeB, int planeheight, int planewidth, int planepitch, int threads, int rangemin, int rangemax) {
 
 		int length = planeheight * planewidth;
 		int rgbblocks = blocks(length, threads);
@@ -3891,9 +3909,207 @@
 		cudaMemcpy2D(planeGnv, planewidth, planeG, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
 		cudaMemcpy2D(planeBnv, planewidth, planeB, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
 
-		KernelTV2PC <<<rgbblocks, threads >>> (planeRnv, length);
-		KernelTV2PC <<<rgbblocks, threads >>> (planeGnv, length);
-		KernelTV2PC <<<rgbblocks, threads >>> (planeBnv, length);
+		if (rangemin >= rangemax)
+		{
+			rangemin = 16;
+			rangemax = 235;
+		}
+
+		KernelTV2PC <<<rgbblocks, threads >>> (planeRnv, length, rangemin, rangemax);
+		KernelTV2PC <<<rgbblocks, threads >>> (planeGnv, length, rangemin, rangemax);
+		KernelTV2PC <<<rgbblocks, threads >>> (planeBnv, length, rangemin, rangemax);
+
+		cudaMemcpy2D(planeR, planepitch, planeRnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
+		cudaMemcpy2D(planeG, planepitch, planeGnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
+		cudaMemcpy2D(planeB, planepitch, planeBnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
+
+		cudaFree(planeRnv);
+		cudaFree(planeGnv);
+		cudaFree(planeBnv);
+	}
+
+	void CudaPC2TVYUV420(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int yuvin, int yuvout) {
+		unsigned char* planeYnv;
+		unsigned char* planeUnv;
+		unsigned char* planeVnv;
+
+		int length = planeYwidth * planeYheight;
+
+		int Ylength = planeYwidth * planeYheight;
+		int Ulength = planeUwidth * planeUheight;
+		int Vlength = planeVwidth * planeVheight;
+
+		int Yblocks = blocks(Ylength, threads);
+
+		cudaMalloc(&planeYnv, Ylength);
+		cudaMemcpy2D(planeYnv, planeYwidth, planeY, planeYpitch, planeYwidth, planeYheight, cudaMemcpyHostToDevice);
+
+		cudaMalloc(&planeUnv, Ulength);
+		cudaMemcpy2D(planeUnv, planeUwidth, planeU, planeUpitch, planeUwidth, planeUheight, cudaMemcpyHostToDevice);
+
+		cudaMalloc(&planeVnv, Vlength);
+		cudaMemcpy2D(planeVnv, planeVwidth, planeV, planeVpitch, planeVwidth, planeVheight, cudaMemcpyHostToDevice);
+
+		int memlen = length * sizeof(Npp32f);
+
+		Npp32f* planeRnv; cudaMalloc(&planeRnv, memlen);
+		Npp32f* planeGnv; cudaMalloc(&planeGnv, memlen);
+		Npp32f* planeBnv; cudaMalloc(&planeBnv, memlen);
+
+		switch (yuvin)
+		{
+		case 709: KernelYUV420toRGBRec709 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth, planeUwidth); break;
+		case 601: KernelYUV420toRGBRec601 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth, planeUwidth); break;
+		case 2020: KernelYUV420toRGBRec2020 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth, planeUwidth); break;
+		default: KernelYUV420toRGBRec709 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth, planeUwidth); break;
+		}
+
+		int rgbblocks = blocks(length, threads);
+
+		KernelPC2TV << <rgbblocks, threads >> > (planeRnv, length);
+		KernelPC2TV << <rgbblocks, threads >> > (planeGnv, length);
+		KernelPC2TV << <rgbblocks, threads >> > (planeBnv, length);
+
+		//allocate full UV planes buffers:
+		unsigned char* planeUnvFull;
+		unsigned char* planeVnvFull;
+		cudaMalloc(&planeUnvFull, Ylength);
+		cudaMalloc(&planeVnvFull, Ylength);
+
+		switch (yuvout)
+		{
+		case 709: KernelRGB2YUVRec709 << <Yblocks, threads >> > (planeYnv, planeUnvFull, planeVnvFull, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
+		case 601: KernelRGB2YUVRec601 << <Yblocks, threads >> > (planeYnv, planeUnvFull, planeVnvFull, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
+		case 2020: KernelRGB2YUVRec2020 << <Yblocks, threads >> > (planeYnv, planeUnvFull, planeVnvFull, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
+		default: KernelRGB2YUVRec709 << <Yblocks, threads >> > (planeYnv, planeUnvFull, planeVnvFull, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
+		}
+
+		int shrinkblocks = blocks(Ylength / 4, threads);
+
+		KernelUVShrink << <shrinkblocks, threads >> > (planeUnvFull, planeUnv, planeYwidth, planeYheight, planeYwidth, planeUwidth, Ylength / 4);
+		KernelUVShrink << <shrinkblocks, threads >> > (planeVnvFull, planeVnv, planeYwidth, planeYheight, planeYwidth, planeVwidth, Ylength / 4);
+
+		cudaFree(planeUnvFull);
+		cudaFree(planeVnvFull);
+
+		cudaMemcpy2D(planeY, planeYpitch, planeYnv, planeYwidth, planeYwidth, planeYheight, cudaMemcpyDeviceToHost);
+		cudaMemcpy2D(planeU, planeUpitch, planeUnv, planeUwidth, planeUwidth, planeUheight, cudaMemcpyDeviceToHost);
+		cudaMemcpy2D(planeV, planeVpitch, planeVnv, planeVwidth, planeVwidth, planeVheight, cudaMemcpyDeviceToHost);
+
+		cudaFree(planeRnv);
+		cudaFree(planeGnv);
+		cudaFree(planeBnv);
+		cudaFree(planeYnv);
+		cudaFree(planeUnv);
+		cudaFree(planeVnv);
+	}
+	void CudaPC2TVYUV444(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int yuvin, int yuvout) {
+		unsigned char* planeYnv;
+		unsigned char* planeUnv;
+		unsigned char* planeVnv;
+
+		int length = planeYwidth * planeYheight;
+
+		int Ylength = planeYwidth * planeYheight;
+		int Ulength = planeUwidth * planeUheight;
+		int Vlength = planeVwidth * planeVheight;
+
+		int Yblocks = blocks(Ylength, threads);
+		int Ublocks = blocks(Ulength, threads);
+		int Vblocks = blocks(Vlength, threads);
+
+		cudaMalloc(&planeYnv, Ylength);
+		cudaMemcpy2D(planeYnv, planeYwidth, planeY, planeYpitch, planeYwidth, planeYheight, cudaMemcpyHostToDevice);
+
+		cudaMalloc(&planeUnv, Ulength);
+		cudaMemcpy2D(planeUnv, planeUwidth, planeU, planeUpitch, planeUwidth, planeUheight, cudaMemcpyHostToDevice);
+
+		cudaMalloc(&planeVnv, Vlength);
+		cudaMemcpy2D(planeVnv, planeVwidth, planeV, planeVpitch, planeVwidth, planeVheight, cudaMemcpyHostToDevice);
+
+		int memlen = length * sizeof(Npp32f);
+
+		Npp32f* planeRnv; cudaMalloc(&planeRnv, memlen);
+		Npp32f* planeGnv; cudaMalloc(&planeGnv, memlen);
+		Npp32f* planeBnv; cudaMalloc(&planeBnv, memlen);
+
+		switch (yuvin)
+		{
+		case 709: KernelYUV2RGBRec709 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
+		case 601: KernelYUV2RGBRec601 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
+		case 2020: KernelYUV2RGBRec2020 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
+		default: KernelYUV2RGBRec709 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
+		}
+
+		int rgbblocks = blocks(length, threads);
+
+		KernelPC2TV << <rgbblocks, threads >> > (planeRnv, length);
+		KernelPC2TV << <rgbblocks, threads >> > (planeGnv, length);
+		KernelPC2TV << <rgbblocks, threads >> > (planeBnv, length);
+
+		switch (yuvout)
+		{
+		case 709: KernelRGB2YUVRec709 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
+		case 601: KernelRGB2YUVRec601 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
+		case 2020: KernelRGB2YUVRec2020 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
+		default: KernelRGB2YUVRec709 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
+		}
+
+		cudaMemcpy2D(planeY, planeYpitch, planeYnv, planeYwidth, planeYwidth, planeYheight, cudaMemcpyDeviceToHost);
+		cudaMemcpy2D(planeU, planeUpitch, planeUnv, planeUwidth, planeUwidth, planeUheight, cudaMemcpyDeviceToHost);
+		cudaMemcpy2D(planeV, planeVpitch, planeVnv, planeVwidth, planeVwidth, planeVheight, cudaMemcpyDeviceToHost);
+
+		cudaFree(planeRnv);
+		cudaFree(planeGnv);
+		cudaFree(planeBnv);
+		cudaFree(planeYnv);
+		cudaFree(planeUnv);
+		cudaFree(planeVnv);
+	}
+	void CudaPC2TVRGB32(unsigned char* plane, int planeheight, int planewidth, int planepitch, int threads) {
+		int bgrLength = planeheight * planepitch;
+		int bgrblocks = blocks(bgrLength / 4, threads);
+
+		int length = planeheight * planewidth;
+		int rgbblocks = blocks(length, threads);
+
+		unsigned char* planeRnv; cudaMalloc(&planeRnv, length);
+		unsigned char* planeGnv; cudaMalloc(&planeGnv, length);
+		unsigned char* planeBnv; cudaMalloc(&planeBnv, length);
+		unsigned char* planeBGRnv; cudaMalloc(&planeBGRnv, bgrLength);
+
+		cudaMemcpy(planeBGRnv, plane, bgrLength, cudaMemcpyHostToDevice);
+		KernelBGRtoRGB << <bgrblocks, threads >> > (planeRnv, planeGnv, planeBnv, planeBGRnv, planewidth, planeheight, planewidth, planepitch);
+
+		KernelPC2TV << <rgbblocks, threads >> > (planeRnv, length);
+		KernelPC2TV << <rgbblocks, threads >> > (planeGnv, length);
+		KernelPC2TV << <rgbblocks, threads >> > (planeBnv, length);
+
+		KernelRGBtoBGR << <rgbblocks, threads >> > (planeRnv, planeGnv, planeBnv, planeBGRnv, planewidth, planeheight, planewidth, planepitch);
+
+		cudaMemcpy(plane, planeBGRnv, bgrLength, cudaMemcpyDeviceToHost);
+
+		cudaFree(planeRnv);
+		cudaFree(planeGnv);
+		cudaFree(planeBnv);
+		cudaFree(planeBGRnv);
+	}
+	void CudaPC2TVRGB(unsigned char* planeR, unsigned char* planeG, unsigned char* planeB, int planeheight, int planewidth, int planepitch, int threads) {
+
+		int length = planeheight * planewidth;
+		int rgbblocks = blocks(length, threads);
+
+		unsigned char* planeRnv; cudaMalloc(&planeRnv, length);
+		unsigned char* planeGnv; cudaMalloc(&planeGnv, length);
+		unsigned char* planeBnv; cudaMalloc(&planeBnv, length);
+
+		cudaMemcpy2D(planeRnv, planewidth, planeR, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
+		cudaMemcpy2D(planeGnv, planewidth, planeG, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
+		cudaMemcpy2D(planeBnv, planewidth, planeB, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
+
+		KernelPC2TV << <rgbblocks, threads >> > (planeRnv, length);
+		KernelPC2TV << <rgbblocks, threads >> > (planeGnv, length);
+		KernelPC2TV << <rgbblocks, threads >> > (planeBnv, length);
 
 		cudaMemcpy2D(planeR, planepitch, planeRnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
 		cudaMemcpy2D(planeG, planepitch, planeGnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
@@ -4735,7 +4951,7 @@
 			cudaFree(planeHSV_Snv);
 		}
 	}
-	void CudaTV2PCYUV42010(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int yuvin, int yuvout) {
+	void CudaTV2PCYUV42010(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int yuvin, int yuvout, int rangemin, int rangemax) {
 		unsigned short* planeYnv;
 		unsigned short* planeUnv;
 		unsigned short* planeVnv;
@@ -4771,9 +4987,15 @@
 
 		int rgbblocks = blocks(length, threads);
 
-		KernelTV2PC <<<rgbblocks, threads >>> (planeRnv, length);
-		KernelTV2PC <<<rgbblocks, threads >>> (planeGnv, length);
-		KernelTV2PC <<<rgbblocks, threads >>> (planeBnv, length);
+		if (rangemin >= rangemax)
+		{
+			rangemin = 64;
+			rangemax = 943;
+		}
+
+		KernelTV2PC <<<rgbblocks, threads >>> (planeRnv, length, rangemin, rangemax);
+		KernelTV2PC <<<rgbblocks, threads >>> (planeGnv, length, rangemin, rangemax);
+		KernelTV2PC <<<rgbblocks, threads >>> (planeBnv, length, rangemin, rangemax);
 
 		//allocate full UV planes buffers:
 		unsigned short* planeUnvFull;
@@ -4793,6 +5015,79 @@
 
 		KernelUVShrink10 <<<shrinkblocks, threads >>> (planeUnvFull, planeUnv, planeYwidth / 2, planeYheight, planeYwidth / 2, planeUwidth / 2, Ylength / 4);
 		KernelUVShrink10 <<<shrinkblocks, threads >>> (planeVnvFull, planeVnv, planeYwidth / 2, planeYheight, planeYwidth / 2, planeVwidth / 2, Ylength / 4);
+
+		cudaFree(planeUnvFull);
+		cudaFree(planeVnvFull);
+
+		cudaMemcpy2D(planeY, planeYpitch, planeYnv, planeYwidth, planeYwidth, planeYheight, cudaMemcpyDeviceToHost);
+		cudaMemcpy2D(planeU, planeUpitch, planeUnv, planeUwidth, planeUwidth, planeUheight, cudaMemcpyDeviceToHost);
+		cudaMemcpy2D(planeV, planeVpitch, planeVnv, planeVwidth, planeVwidth, planeVheight, cudaMemcpyDeviceToHost);
+
+		cudaFree(planeRnv);
+		cudaFree(planeGnv);
+		cudaFree(planeBnv);
+		cudaFree(planeYnv);
+		cudaFree(planeUnv);
+		cudaFree(planeVnv);
+	}
+	void CudaPC2TVYUV42010(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int yuvin, int yuvout) {
+		unsigned short* planeYnv;
+		unsigned short* planeUnv;
+		unsigned short* planeVnv;
+
+		int length = planeYwidth / 2 * planeYheight;
+
+		int Ylength = planeYwidth / 2 * planeYheight;
+		int Ulength = planeUwidth / 2 * planeUheight;
+		int Vlength = planeVwidth / 2 * planeVheight;
+
+		int Yblocks = blocks(Ylength, threads);
+
+		cudaMalloc(&planeYnv, Ylength * 2);
+		cudaMemcpy2D(planeYnv, planeYwidth, planeY, planeYpitch, planeYwidth, planeYheight, cudaMemcpyHostToDevice);
+		cudaMalloc(&planeUnv, Ulength * 2);
+		cudaMemcpy2D(planeUnv, planeUwidth, planeU, planeUpitch, planeUwidth, planeUheight, cudaMemcpyHostToDevice);
+		cudaMalloc(&planeVnv, Vlength * 2);
+		cudaMemcpy2D(planeVnv, planeVwidth, planeV, planeVpitch, planeVwidth, planeVheight, cudaMemcpyHostToDevice);
+
+		int memlen = length * sizeof(Npp32f);
+
+		Npp32f* planeRnv; cudaMalloc(&planeRnv, memlen);
+		Npp32f* planeGnv; cudaMalloc(&planeGnv, memlen);
+		Npp32f* planeBnv; cudaMalloc(&planeBnv, memlen);
+
+		switch (yuvin)
+		{
+		case 709: KernelYUV420toRGB10Rec709 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2, planeUwidth / 2); break;
+		case 601: KernelYUV420toRGB10Rec601 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2, planeUwidth / 2); break;
+		case 2020: KernelYUV420toRGB10Rec2020 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2, planeUwidth / 2); break;
+		default: KernelYUV420toRGB10Rec709 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2, planeUwidth / 2); break;
+		}
+
+		int rgbblocks = blocks(length, threads);
+
+		KernelPC2TV << <rgbblocks, threads >> > (planeRnv, length);
+		KernelPC2TV << <rgbblocks, threads >> > (planeGnv, length);
+		KernelPC2TV << <rgbblocks, threads >> > (planeBnv, length);
+
+		//allocate full UV planes buffers:
+		unsigned short* planeUnvFull;
+		unsigned short* planeVnvFull;
+		cudaMalloc(&planeUnvFull, Ylength * 2);
+		cudaMalloc(&planeVnvFull, Ylength * 2);
+
+		switch (yuvout)
+		{
+		case 709: KernelRGB2YUV10Rec709 << <Yblocks, threads >> > (planeYnv, planeUnvFull, planeVnvFull, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
+		case 601: KernelRGB2YUV10Rec601 << <Yblocks, threads >> > (planeYnv, planeUnvFull, planeVnvFull, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
+		case 2020: KernelRGB2YUV10Rec2020 << <Yblocks, threads >> > (planeYnv, planeUnvFull, planeVnvFull, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
+		default: KernelRGB2YUV10Rec709 << <Yblocks, threads >> > (planeYnv, planeUnvFull, planeVnvFull, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
+		}
+
+		int shrinkblocks = blocks(Ylength / 4, threads);
+
+		KernelUVShrink10 << <shrinkblocks, threads >> > (planeUnvFull, planeUnv, planeYwidth / 2, planeYheight, planeYwidth / 2, planeUwidth / 2, Ylength / 4);
+		KernelUVShrink10 << <shrinkblocks, threads >> > (planeVnvFull, planeVnv, planeYwidth / 2, planeYheight, planeYwidth / 2, planeVwidth / 2, Ylength / 4);
 
 		cudaFree(planeUnvFull);
 		cudaFree(planeVnvFull);
@@ -5368,7 +5663,7 @@
 			cudaFree(planeHSV_Snv);
 		}
 	}
-	void CudaTV2PCYUV44410(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int yuvin, int yuvout) {
+	void CudaTV2PCYUV44410(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int yuvin, int yuvout, int rangemin, int rangemax) {
 		unsigned short* planeYnv;
 		unsigned short* planeUnv;
 		unsigned short* planeVnv;
@@ -5404,9 +5699,15 @@
 
 		int rgbblocks = blocks(length, threads);
 
-		KernelTV2PC <<<rgbblocks, threads >>> (planeRnv, length);
-		KernelTV2PC <<<rgbblocks, threads >>> (planeGnv, length);
-		KernelTV2PC <<<rgbblocks, threads >>> (planeBnv, length);
+		if (rangemin >= rangemax)
+		{
+			rangemin = 64;
+			rangemax = 943;
+		}
+
+		KernelTV2PC <<<rgbblocks, threads >>> (planeRnv, length, rangemin, rangemax);
+		KernelTV2PC <<<rgbblocks, threads >>> (planeGnv, length, rangemin, rangemax);
+		KernelTV2PC <<<rgbblocks, threads >>> (planeBnv, length, rangemin, rangemax);
 
 		switch (yuvout)
 		{
@@ -5414,6 +5715,65 @@
 		case 601: KernelRGB2YUV10Rec601 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
 		case 2020: KernelRGB2YUV10Rec2020 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
 		default: KernelRGB2YUV10Rec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
+		}
+
+		cudaMemcpy2D(planeY, planeYpitch, planeYnv, planeYwidth, planeYwidth, planeYheight, cudaMemcpyDeviceToHost);
+		cudaMemcpy2D(planeU, planeUpitch, planeUnv, planeUwidth, planeUwidth, planeUheight, cudaMemcpyDeviceToHost);
+		cudaMemcpy2D(planeV, planeVpitch, planeVnv, planeVwidth, planeVwidth, planeVheight, cudaMemcpyDeviceToHost);
+
+		cudaFree(planeRnv);
+		cudaFree(planeGnv);
+		cudaFree(planeBnv);
+		cudaFree(planeYnv);
+		cudaFree(planeUnv);
+		cudaFree(planeVnv);
+	}
+	void CudaPC2TVYUV44410(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int yuvin, int yuvout) {
+		unsigned short* planeYnv;
+		unsigned short* planeUnv;
+		unsigned short* planeVnv;
+
+		int length = planeYwidth / 2 * planeYheight;
+
+		int Ylength = planeYwidth / 2 * planeYheight;
+		int Ulength = planeUwidth / 2 * planeUheight;
+		int Vlength = planeVwidth / 2 * planeVheight;
+
+		int Yblocks = blocks(Ylength, threads);
+
+		cudaMalloc(&planeYnv, Ylength * 2);
+		cudaMemcpy2D(planeYnv, planeYwidth, planeY, planeYpitch, planeYwidth, planeYheight, cudaMemcpyHostToDevice);
+		cudaMalloc(&planeUnv, Ulength * 2);
+		cudaMemcpy2D(planeUnv, planeUwidth, planeU, planeUpitch, planeUwidth, planeUheight, cudaMemcpyHostToDevice);
+		cudaMalloc(&planeVnv, Vlength * 2);
+		cudaMemcpy2D(planeVnv, planeVwidth, planeV, planeVpitch, planeVwidth, planeVheight, cudaMemcpyHostToDevice);
+
+		int memlen = length * sizeof(Npp32f);
+
+		Npp32f* planeRnv; cudaMalloc(&planeRnv, memlen);
+		Npp32f* planeGnv; cudaMalloc(&planeGnv, memlen);
+		Npp32f* planeBnv; cudaMalloc(&planeBnv, memlen);
+
+		switch (yuvin)
+		{
+		case 709: KernelYUV2RGB10Rec709 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
+		case 601: KernelYUV2RGB10Rec601 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
+		case 2020: KernelYUV2RGB10Rec2020 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
+		default: KernelYUV2RGB10Rec709 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
+		}
+
+		int rgbblocks = blocks(length, threads);
+
+		KernelPC2TV << <rgbblocks, threads >> > (planeRnv, length);
+		KernelPC2TV << <rgbblocks, threads >> > (planeGnv, length);
+		KernelPC2TV << <rgbblocks, threads >> > (planeBnv, length);
+
+		switch (yuvout)
+		{
+		case 709: KernelRGB2YUV10Rec709 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
+		case 601: KernelRGB2YUV10Rec601 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
+		case 2020: KernelRGB2YUV10Rec2020 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
+		default: KernelRGB2YUV10Rec709 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
 		}
 
 		cudaMemcpy2D(planeY, planeYpitch, planeYnv, planeYwidth, planeYwidth, planeYheight, cudaMemcpyDeviceToHost);
@@ -5942,7 +6302,7 @@
 		cudaFree(planeHSV_Snv);
 		cudaFree(planeHSV_Vnv);
 	}
-	void CudaTV2PCRGB10(unsigned short* planeR, unsigned short* planeG, unsigned short* planeB, int planeheight, int planewidth, int planepitch, int threads) {
+	void CudaTV2PCRGB10(unsigned short* planeR, unsigned short* planeG, unsigned short* planeB, int planeheight, int planewidth, int planepitch, int threads, int rangemin, int rangemax) {
 
 		int length = planeheight * planewidth / 2;
 		int rgbblocks = blocks(length, threads);
@@ -5955,9 +6315,40 @@
 		cudaMemcpy2D(planeGnv, planewidth, planeG, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
 		cudaMemcpy2D(planeBnv, planewidth, planeB, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
 
-		KernelTV2PC <<<rgbblocks, threads >>> (planeRnv, length);
-		KernelTV2PC <<<rgbblocks, threads >>> (planeGnv, length);
-		KernelTV2PC <<<rgbblocks, threads >>> (planeBnv, length);
+		if (rangemin >= rangemax)
+		{
+			rangemin = 64;
+			rangemax = 943;
+		}
+
+		KernelTV2PC <<<rgbblocks, threads >>> (planeRnv, length, rangemin, rangemax);
+		KernelTV2PC <<<rgbblocks, threads >>> (planeGnv, length, rangemin, rangemax);
+		KernelTV2PC <<<rgbblocks, threads >>> (planeBnv, length, rangemin, rangemax);
+
+		cudaMemcpy2D(planeR, planepitch, planeRnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
+		cudaMemcpy2D(planeG, planepitch, planeGnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
+		cudaMemcpy2D(planeB, planepitch, planeBnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
+
+		cudaFree(planeRnv);
+		cudaFree(planeGnv);
+		cudaFree(planeBnv);
+	}
+	void CudaPC2TVRGB10(unsigned short* planeR, unsigned short* planeG, unsigned short* planeB, int planeheight, int planewidth, int planepitch, int threads) {
+
+		int length = planeheight * planewidth / 2;
+		int rgbblocks = blocks(length, threads);
+
+		unsigned char* planeRnv; cudaMalloc(&planeRnv, length * 2);
+		unsigned char* planeGnv; cudaMalloc(&planeGnv, length * 2);
+		unsigned char* planeBnv; cudaMalloc(&planeBnv, length * 2);
+
+		cudaMemcpy2D(planeRnv, planewidth, planeR, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
+		cudaMemcpy2D(planeGnv, planewidth, planeG, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
+		cudaMemcpy2D(planeBnv, planewidth, planeB, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
+
+		KernelPC2TV << <rgbblocks, threads >> > (planeRnv, length);
+		KernelPC2TV << <rgbblocks, threads >> > (planeGnv, length);
+		KernelPC2TV << <rgbblocks, threads >> > (planeBnv, length);
 
 		cudaMemcpy2D(planeR, planepitch, planeRnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
 		cudaMemcpy2D(planeG, planepitch, planeGnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
