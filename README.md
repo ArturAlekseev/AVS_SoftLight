@@ -3,7 +3,7 @@ AviSynth and VapourSynth Softlight plugin
 
 Realization of CUDA soflight negative average blend.
 
-Plugin is x64 (CUDA toolkit 12.4 & 11.8)
+Plugin is x64 (CUDA toolkit 12.5 & 11.8)
 
 You could see on Youtube videos about removing color cast using Photoshops softlight blend of negative average. This is a CUDA realization of it that process every frame.
 
@@ -17,7 +17,7 @@ Softlight(mode, formula, skipblack, yuvin, yuvout, rangemin, rangemax)
 
 All parameters are optional.
 
-mode = 0,1,2,3,4,5,6,8,9,10,11,12 (7 is not used so far, 0 is default)
+mode = 0-12 (0 is default)
 
 Can be used like this: Softlight() same as Softlight(0)
 
@@ -44,6 +44,8 @@ Also keep in mind that you better remove black bars in video for correct process
 **5 mode:** YUV->RGB->softlight each RGB plane with itself->YUV (color/contrast boost).
 
 **6 mode:** YUV->RGB->HSV->boost S->RGB->YUV (boost saturation).
+
+**7 mode:** Limited color range clamping. Some videos with limited color range contain values < 16 and > 235. This mode change them to 16 & 235. This mode is not needed after mode 9.
 
 **8 mode:** TV to PC color range conversion (use it on videos where you see no total black and only grays). Or check video using ShowChannels plugin (if minimum in Y is 16 or 15 - then your source is in limited range). You can change input levels using rangemin & rangemax params. They are used only in this mode. If they are not specified or wrong (rangemin>=rangemax) then default will be used.
 
