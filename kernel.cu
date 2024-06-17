@@ -2169,6 +2169,33 @@
 		}
 	}
 	
+	__global__ void KernelTVClamp(unsigned char* buf, int length)
+	{
+		int i = blockIdx.x * blockDim.x + threadIdx.x;
+		if (i < length) {
+			unsigned char cf = buf[i];
+			if (cf < 16) buf[i] = 16; else if (cf > 235) buf[i] = 235;
+		}
+	}
+	__global__ void KernelTVClamp(unsigned short* buf, int length)
+	{
+		int i = blockIdx.x * blockDim.x + threadIdx.x;
+		if (i < length) {
+			unsigned short cf = buf[i];
+			if (cf < 64) buf[i] = 64; else if (cf > 943) buf[i] = 943;
+		}
+	}
+	__global__ void KernelTVClamp(Npp32f* buf, int length)
+	{
+		int i = blockIdx.x * blockDim.x + threadIdx.x;
+		if (i < length) {
+			Npp32f c = buf[i];
+			static Npp32f lowlimit = 16.0 / 255.0;
+			static Npp32f highlimit = 235.0 / 255.0;
+			if (c < lowlimit) buf[i] = lowlimit; else if (c > highlimit) buf[i] = highlimit;
+		}
+	}
+	
 	__global__ void KernelOETF(unsigned char* buf, int length)
 	{
 		int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -4120,6 +4147,198 @@
 		cudaFree(planeBnv);
 	}
 
+	void CudaTVClampYUV420(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int yuvin, int yuvout) {
+		unsigned char* planeYnv;
+		unsigned char* planeUnv;
+		unsigned char* planeVnv;
+
+		int length = planeYwidth * planeYheight;
+
+		int Ylength = planeYwidth * planeYheight;
+		int Ulength = planeUwidth * planeUheight;
+		int Vlength = planeVwidth * planeVheight;
+
+		int Yblocks = blocks(Ylength, threads);
+
+		cudaMalloc(&planeYnv, Ylength);
+		cudaMemcpy2D(planeYnv, planeYwidth, planeY, planeYpitch, planeYwidth, planeYheight, cudaMemcpyHostToDevice);
+
+		cudaMalloc(&planeUnv, Ulength);
+		cudaMemcpy2D(planeUnv, planeUwidth, planeU, planeUpitch, planeUwidth, planeUheight, cudaMemcpyHostToDevice);
+
+		cudaMalloc(&planeVnv, Vlength);
+		cudaMemcpy2D(planeVnv, planeVwidth, planeV, planeVpitch, planeVwidth, planeVheight, cudaMemcpyHostToDevice);
+
+		int memlen = length * sizeof(Npp32f);
+
+		Npp32f* planeRnv; cudaMalloc(&planeRnv, memlen);
+		Npp32f* planeGnv; cudaMalloc(&planeGnv, memlen);
+		Npp32f* planeBnv; cudaMalloc(&planeBnv, memlen);
+
+		switch (yuvin)
+		{
+		case 709: KernelYUV420toRGBRec709 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth, planeUwidth); break;
+		case 601: KernelYUV420toRGBRec601 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth, planeUwidth); break;
+		case 2020: KernelYUV420toRGBRec2020 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth, planeUwidth); break;
+		default: KernelYUV420toRGBRec709 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth, planeUwidth); break;
+		}
+
+		int rgbblocks = blocks(length, threads);
+
+		KernelTVClamp << <rgbblocks, threads >> > (planeRnv, length);
+		KernelTVClamp << <rgbblocks, threads >> > (planeGnv, length);
+		KernelTVClamp << <rgbblocks, threads >> > (planeBnv, length);
+
+		//allocate full UV planes buffers:
+		unsigned char* planeUnvFull;
+		unsigned char* planeVnvFull;
+		cudaMalloc(&planeUnvFull, Ylength);
+		cudaMalloc(&planeVnvFull, Ylength);
+
+		switch (yuvout)
+		{
+		case 709: KernelRGB2YUVRec709 << <Yblocks, threads >> > (planeYnv, planeUnvFull, planeVnvFull, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
+		case 601: KernelRGB2YUVRec601 << <Yblocks, threads >> > (planeYnv, planeUnvFull, planeVnvFull, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
+		case 2020: KernelRGB2YUVRec2020 << <Yblocks, threads >> > (planeYnv, planeUnvFull, planeVnvFull, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
+		default: KernelRGB2YUVRec709 << <Yblocks, threads >> > (planeYnv, planeUnvFull, planeVnvFull, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
+		}
+
+		int shrinkblocks = blocks(Ylength / 4, threads);
+
+		KernelUVShrink << <shrinkblocks, threads >> > (planeUnvFull, planeUnv, planeYwidth, planeYheight, planeYwidth, planeUwidth, Ylength / 4);
+		KernelUVShrink << <shrinkblocks, threads >> > (planeVnvFull, planeVnv, planeYwidth, planeYheight, planeYwidth, planeVwidth, Ylength / 4);
+
+		cudaFree(planeUnvFull);
+		cudaFree(planeVnvFull);
+
+		cudaMemcpy2D(planeY, planeYpitch, planeYnv, planeYwidth, planeYwidth, planeYheight, cudaMemcpyDeviceToHost);
+		cudaMemcpy2D(planeU, planeUpitch, planeUnv, planeUwidth, planeUwidth, planeUheight, cudaMemcpyDeviceToHost);
+		cudaMemcpy2D(planeV, planeVpitch, planeVnv, planeVwidth, planeVwidth, planeVheight, cudaMemcpyDeviceToHost);
+
+		cudaFree(planeRnv);
+		cudaFree(planeGnv);
+		cudaFree(planeBnv);
+		cudaFree(planeYnv);
+		cudaFree(planeUnv);
+		cudaFree(planeVnv);
+	}
+	void CudaTVClampYUV444(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int yuvin, int yuvout) {
+		unsigned char* planeYnv;
+		unsigned char* planeUnv;
+		unsigned char* planeVnv;
+
+		int length = planeYwidth * planeYheight;
+
+		int Ylength = planeYwidth * planeYheight;
+		int Ulength = planeUwidth * planeUheight;
+		int Vlength = planeVwidth * planeVheight;
+
+		int Yblocks = blocks(Ylength, threads);
+		int Ublocks = blocks(Ulength, threads);
+		int Vblocks = blocks(Vlength, threads);
+
+		cudaMalloc(&planeYnv, Ylength);
+		cudaMemcpy2D(planeYnv, planeYwidth, planeY, planeYpitch, planeYwidth, planeYheight, cudaMemcpyHostToDevice);
+
+		cudaMalloc(&planeUnv, Ulength);
+		cudaMemcpy2D(planeUnv, planeUwidth, planeU, planeUpitch, planeUwidth, planeUheight, cudaMemcpyHostToDevice);
+
+		cudaMalloc(&planeVnv, Vlength);
+		cudaMemcpy2D(planeVnv, planeVwidth, planeV, planeVpitch, planeVwidth, planeVheight, cudaMemcpyHostToDevice);
+
+		int memlen = length * sizeof(Npp32f);
+
+		Npp32f* planeRnv; cudaMalloc(&planeRnv, memlen);
+		Npp32f* planeGnv; cudaMalloc(&planeGnv, memlen);
+		Npp32f* planeBnv; cudaMalloc(&planeBnv, memlen);
+
+		switch (yuvin)
+		{
+		case 709: KernelYUV2RGBRec709 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
+		case 601: KernelYUV2RGBRec601 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
+		case 2020: KernelYUV2RGBRec2020 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
+		default: KernelYUV2RGBRec709 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
+		}
+
+		int rgbblocks = blocks(length, threads);
+
+		KernelTVClamp << <rgbblocks, threads >> > (planeRnv, length);
+		KernelTVClamp << <rgbblocks, threads >> > (planeGnv, length);
+		KernelTVClamp << <rgbblocks, threads >> > (planeBnv, length);
+
+		switch (yuvout)
+		{
+		case 709: KernelRGB2YUVRec709 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
+		case 601: KernelRGB2YUVRec601 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
+		case 2020: KernelRGB2YUVRec2020 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
+		default: KernelRGB2YUVRec709 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
+		}
+
+		cudaMemcpy2D(planeY, planeYpitch, planeYnv, planeYwidth, planeYwidth, planeYheight, cudaMemcpyDeviceToHost);
+		cudaMemcpy2D(planeU, planeUpitch, planeUnv, planeUwidth, planeUwidth, planeUheight, cudaMemcpyDeviceToHost);
+		cudaMemcpy2D(planeV, planeVpitch, planeVnv, planeVwidth, planeVwidth, planeVheight, cudaMemcpyDeviceToHost);
+
+		cudaFree(planeRnv);
+		cudaFree(planeGnv);
+		cudaFree(planeBnv);
+		cudaFree(planeYnv);
+		cudaFree(planeUnv);
+		cudaFree(planeVnv);
+	}
+	void CudaTVClampRGB32(unsigned char* plane, int planeheight, int planewidth, int planepitch, int threads) {
+		int bgrLength = planeheight * planepitch;
+		int bgrblocks = blocks(bgrLength / 4, threads);
+
+		int length = planeheight * planewidth;
+		int rgbblocks = blocks(length, threads);
+
+		unsigned char* planeRnv; cudaMalloc(&planeRnv, length);
+		unsigned char* planeGnv; cudaMalloc(&planeGnv, length);
+		unsigned char* planeBnv; cudaMalloc(&planeBnv, length);
+		unsigned char* planeBGRnv; cudaMalloc(&planeBGRnv, bgrLength);
+
+		cudaMemcpy(planeBGRnv, plane, bgrLength, cudaMemcpyHostToDevice);
+		KernelBGRtoRGB << <bgrblocks, threads >> > (planeRnv, planeGnv, planeBnv, planeBGRnv, planewidth, planeheight, planewidth, planepitch);
+
+		KernelTVClamp << <rgbblocks, threads >> > (planeRnv, length);
+		KernelTVClamp << <rgbblocks, threads >> > (planeGnv, length);
+		KernelTVClamp << <rgbblocks, threads >> > (planeBnv, length);
+
+		KernelRGBtoBGR << <rgbblocks, threads >> > (planeRnv, planeGnv, planeBnv, planeBGRnv, planewidth, planeheight, planewidth, planepitch);
+
+		cudaMemcpy(plane, planeBGRnv, bgrLength, cudaMemcpyDeviceToHost);
+
+		cudaFree(planeRnv);
+		cudaFree(planeGnv);
+		cudaFree(planeBnv);
+		cudaFree(planeBGRnv);
+	}
+	void CudaTVClampRGB(unsigned char* planeR, unsigned char* planeG, unsigned char* planeB, int planeheight, int planewidth, int planepitch, int threads) {
+
+		int length = planeheight * planewidth;
+		int rgbblocks = blocks(length, threads);
+
+		unsigned char* planeRnv; cudaMalloc(&planeRnv, length);
+		unsigned char* planeGnv; cudaMalloc(&planeGnv, length);
+		unsigned char* planeBnv; cudaMalloc(&planeBnv, length);
+
+		cudaMemcpy2D(planeRnv, planewidth, planeR, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
+		cudaMemcpy2D(planeGnv, planewidth, planeG, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
+		cudaMemcpy2D(planeBnv, planewidth, planeB, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
+
+		KernelTVClamp << <rgbblocks, threads >> > (planeRnv, length);
+		KernelTVClamp << <rgbblocks, threads >> > (planeGnv, length);
+		KernelTVClamp << <rgbblocks, threads >> > (planeBnv, length);
+
+		cudaMemcpy2D(planeR, planepitch, planeRnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
+		cudaMemcpy2D(planeG, planepitch, planeGnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
+		cudaMemcpy2D(planeB, planepitch, planeBnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
+
+		cudaFree(planeRnv);
+		cudaFree(planeGnv);
+		cudaFree(planeBnv);
+	}
+
 	void CudaGrayscaleRGB32(unsigned char* plane, int planeheight, int planewidth, int planepitch, int threads, int yuvin, int yuvout) {
 
 		int bgrLength = planeheight * planepitch;
@@ -4228,7 +4447,6 @@
 		cudaFree(planeUnv);
 		cudaFree(planeVnv);
 	}
-
 	
 	void CudaOETFRGB(unsigned char* planeR, unsigned char* planeG, unsigned char* planeB, int planeheight, int planewidth, int planepitch, int threads) {
 
@@ -5103,6 +5321,79 @@
 		cudaFree(planeUnv);
 		cudaFree(planeVnv);
 	}
+	void CudaTVClampYUV42010(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int yuvin, int yuvout) {
+		unsigned short* planeYnv;
+		unsigned short* planeUnv;
+		unsigned short* planeVnv;
+
+		int length = planeYwidth / 2 * planeYheight;
+
+		int Ylength = planeYwidth / 2 * planeYheight;
+		int Ulength = planeUwidth / 2 * planeUheight;
+		int Vlength = planeVwidth / 2 * planeVheight;
+
+		int Yblocks = blocks(Ylength, threads);
+
+		cudaMalloc(&planeYnv, Ylength * 2);
+		cudaMemcpy2D(planeYnv, planeYwidth, planeY, planeYpitch, planeYwidth, planeYheight, cudaMemcpyHostToDevice);
+		cudaMalloc(&planeUnv, Ulength * 2);
+		cudaMemcpy2D(planeUnv, planeUwidth, planeU, planeUpitch, planeUwidth, planeUheight, cudaMemcpyHostToDevice);
+		cudaMalloc(&planeVnv, Vlength * 2);
+		cudaMemcpy2D(planeVnv, planeVwidth, planeV, planeVpitch, planeVwidth, planeVheight, cudaMemcpyHostToDevice);
+
+		int memlen = length * sizeof(Npp32f);
+
+		Npp32f* planeRnv; cudaMalloc(&planeRnv, memlen);
+		Npp32f* planeGnv; cudaMalloc(&planeGnv, memlen);
+		Npp32f* planeBnv; cudaMalloc(&planeBnv, memlen);
+
+		switch (yuvin)
+		{
+		case 709: KernelYUV420toRGB10Rec709 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2, planeUwidth / 2); break;
+		case 601: KernelYUV420toRGB10Rec601 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2, planeUwidth / 2); break;
+		case 2020: KernelYUV420toRGB10Rec2020 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2, planeUwidth / 2); break;
+		default: KernelYUV420toRGB10Rec709 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2, planeUwidth / 2); break;
+		}
+
+		int rgbblocks = blocks(length, threads);
+
+		KernelTVClamp << <rgbblocks, threads >> > (planeRnv, length);
+		KernelTVClamp << <rgbblocks, threads >> > (planeGnv, length);
+		KernelTVClamp << <rgbblocks, threads >> > (planeBnv, length);
+
+		//allocate full UV planes buffers:
+		unsigned short* planeUnvFull;
+		unsigned short* planeVnvFull;
+		cudaMalloc(&planeUnvFull, Ylength * 2);
+		cudaMalloc(&planeVnvFull, Ylength * 2);
+
+		switch (yuvout)
+		{
+		case 709: KernelRGB2YUV10Rec709 << <Yblocks, threads >> > (planeYnv, planeUnvFull, planeVnvFull, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
+		case 601: KernelRGB2YUV10Rec601 << <Yblocks, threads >> > (planeYnv, planeUnvFull, planeVnvFull, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
+		case 2020: KernelRGB2YUV10Rec2020 << <Yblocks, threads >> > (planeYnv, planeUnvFull, planeVnvFull, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
+		default: KernelRGB2YUV10Rec709 << <Yblocks, threads >> > (planeYnv, planeUnvFull, planeVnvFull, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
+		}
+
+		int shrinkblocks = blocks(Ylength / 4, threads);
+
+		KernelUVShrink10 << <shrinkblocks, threads >> > (planeUnvFull, planeUnv, planeYwidth / 2, planeYheight, planeYwidth / 2, planeUwidth / 2, Ylength / 4);
+		KernelUVShrink10 << <shrinkblocks, threads >> > (planeVnvFull, planeVnv, planeYwidth / 2, planeYheight, planeYwidth / 2, planeVwidth / 2, Ylength / 4);
+
+		cudaFree(planeUnvFull);
+		cudaFree(planeVnvFull);
+
+		cudaMemcpy2D(planeY, planeYpitch, planeYnv, planeYwidth, planeYwidth, planeYheight, cudaMemcpyDeviceToHost);
+		cudaMemcpy2D(planeU, planeUpitch, planeUnv, planeUwidth, planeUwidth, planeUheight, cudaMemcpyDeviceToHost);
+		cudaMemcpy2D(planeV, planeVpitch, planeVnv, planeVwidth, planeVwidth, planeVheight, cudaMemcpyDeviceToHost);
+
+		cudaFree(planeRnv);
+		cudaFree(planeGnv);
+		cudaFree(planeBnv);
+		cudaFree(planeYnv);
+		cudaFree(planeUnv);
+		cudaFree(planeVnv);
+	}
 	void CudaBoostSaturationYUV42010(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int formula, int yuvin, int yuvout) {
 		unsigned short* planeYnv;
 		unsigned short* planeUnv;
@@ -5787,6 +6078,65 @@
 		cudaFree(planeUnv);
 		cudaFree(planeVnv);
 	}
+	void CudaTVClampYUV44410(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int yuvin, int yuvout) {
+		unsigned short* planeYnv;
+		unsigned short* planeUnv;
+		unsigned short* planeVnv;
+
+		int length = planeYwidth / 2 * planeYheight;
+
+		int Ylength = planeYwidth / 2 * planeYheight;
+		int Ulength = planeUwidth / 2 * planeUheight;
+		int Vlength = planeVwidth / 2 * planeVheight;
+
+		int Yblocks = blocks(Ylength, threads);
+
+		cudaMalloc(&planeYnv, Ylength * 2);
+		cudaMemcpy2D(planeYnv, planeYwidth, planeY, planeYpitch, planeYwidth, planeYheight, cudaMemcpyHostToDevice);
+		cudaMalloc(&planeUnv, Ulength * 2);
+		cudaMemcpy2D(planeUnv, planeUwidth, planeU, planeUpitch, planeUwidth, planeUheight, cudaMemcpyHostToDevice);
+		cudaMalloc(&planeVnv, Vlength * 2);
+		cudaMemcpy2D(planeVnv, planeVwidth, planeV, planeVpitch, planeVwidth, planeVheight, cudaMemcpyHostToDevice);
+
+		int memlen = length * sizeof(Npp32f);
+
+		Npp32f* planeRnv; cudaMalloc(&planeRnv, memlen);
+		Npp32f* planeGnv; cudaMalloc(&planeGnv, memlen);
+		Npp32f* planeBnv; cudaMalloc(&planeBnv, memlen);
+
+		switch (yuvin)
+		{
+		case 709: KernelYUV2RGB10Rec709 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
+		case 601: KernelYUV2RGB10Rec601 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
+		case 2020: KernelYUV2RGB10Rec2020 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
+		default: KernelYUV2RGB10Rec709 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
+		}
+
+		int rgbblocks = blocks(length, threads);
+
+		KernelTVClamp << <rgbblocks, threads >> > (planeRnv, length);
+		KernelTVClamp << <rgbblocks, threads >> > (planeGnv, length);
+		KernelTVClamp << <rgbblocks, threads >> > (planeBnv, length);
+
+		switch (yuvout)
+		{
+		case 709: KernelRGB2YUV10Rec709 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
+		case 601: KernelRGB2YUV10Rec601 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
+		case 2020: KernelRGB2YUV10Rec2020 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
+		default: KernelRGB2YUV10Rec709 << <Yblocks, threads >> > (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
+		}
+
+		cudaMemcpy2D(planeY, planeYpitch, planeYnv, planeYwidth, planeYwidth, planeYheight, cudaMemcpyDeviceToHost);
+		cudaMemcpy2D(planeU, planeUpitch, planeUnv, planeUwidth, planeUwidth, planeUheight, cudaMemcpyDeviceToHost);
+		cudaMemcpy2D(planeV, planeVpitch, planeVnv, planeVwidth, planeVwidth, planeVheight, cudaMemcpyDeviceToHost);
+
+		cudaFree(planeRnv);
+		cudaFree(planeGnv);
+		cudaFree(planeBnv);
+		cudaFree(planeYnv);
+		cudaFree(planeUnv);
+		cudaFree(planeVnv);
+	}
 	void CudaBoostSaturationYUV44410(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int formula, int yuvin, int yuvout) {
 		unsigned short* planeYnv;
 		unsigned short* planeUnv;
@@ -6349,6 +6699,31 @@
 		KernelPC2TV << <rgbblocks, threads >> > (planeRnv, length);
 		KernelPC2TV << <rgbblocks, threads >> > (planeGnv, length);
 		KernelPC2TV << <rgbblocks, threads >> > (planeBnv, length);
+
+		cudaMemcpy2D(planeR, planepitch, planeRnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
+		cudaMemcpy2D(planeG, planepitch, planeGnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
+		cudaMemcpy2D(planeB, planepitch, planeBnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
+
+		cudaFree(planeRnv);
+		cudaFree(planeGnv);
+		cudaFree(planeBnv);
+	}
+	void CudaTVClampRGB10(unsigned short* planeR, unsigned short* planeG, unsigned short* planeB, int planeheight, int planewidth, int planepitch, int threads) {
+
+		int length = planeheight * planewidth / 2;
+		int rgbblocks = blocks(length, threads);
+
+		unsigned char* planeRnv; cudaMalloc(&planeRnv, length * 2);
+		unsigned char* planeGnv; cudaMalloc(&planeGnv, length * 2);
+		unsigned char* planeBnv; cudaMalloc(&planeBnv, length * 2);
+
+		cudaMemcpy2D(planeRnv, planewidth, planeR, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
+		cudaMemcpy2D(planeGnv, planewidth, planeG, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
+		cudaMemcpy2D(planeBnv, planewidth, planeB, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
+
+		KernelTVClamp << <rgbblocks, threads >> > (planeRnv, length);
+		KernelTVClamp << <rgbblocks, threads >> > (planeGnv, length);
+		KernelTVClamp << <rgbblocks, threads >> > (planeBnv, length);
 
 		cudaMemcpy2D(planeR, planepitch, planeRnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
 		cudaMemcpy2D(planeG, planepitch, planeGnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
