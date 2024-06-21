@@ -2164,7 +2164,7 @@
 			Npp32f c = buf[i];
 			static Npp32f lowlimit = 16.0 / 255.0;
 			static Npp32f range = 219.0 / 255.0;
-			c = round(c * range + lowlimit);
+			c = c * range + lowlimit;
 			buf[i] = c;
 		}
 	}
@@ -3993,9 +3993,9 @@
 
 		int rgbblocks = blocks(length, threads);
 
-		KernelPC2TV << <rgbblocks, threads >> > (planeRnv, length);
-		KernelPC2TV << <rgbblocks, threads >> > (planeGnv, length);
-		KernelPC2TV << <rgbblocks, threads >> > (planeBnv, length);
+		KernelPC2TV <<<rgbblocks, threads >> > (planeRnv, length);
+		KernelPC2TV <<<rgbblocks, threads >> > (planeGnv, length);
+		KernelPC2TV <<<rgbblocks, threads >> > (planeBnv, length);
 
 		//allocate full UV planes buffers:
 		unsigned char* planeUnvFull;
