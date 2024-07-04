@@ -2139,6 +2139,26 @@
 			buf[i] = c;
 		}
 	}
+	__global__ void KernelTV2PC10(Npp32f* buf, int length, int rangemin, int rangemax)
+	{
+		int i = blockIdx.x * blockDim.x + threadIdx.x;
+		if (i < length) {
+			Npp32f c = buf[i];
+			Npp32f lowlimit = rangemin / 1023;
+			Npp32f highlimit = rangemax / 1023.0;
+			Npp32f range = (rangemax - rangemin) / 1023.0;
+			if (c <= lowlimit) c = 0.0; //lowerst
+			else
+				if (c >= highlimit) c = 1.0; //max
+				else
+				{ //16-235
+					Npp32f cf = c;
+					cf = (cf - lowlimit) / range;
+					c = cf;
+				}
+			buf[i] = c;
+		}
+	}
 	__global__ void KernelPC2TV(unsigned char* buf, int length)
 	{
 		int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -5210,10 +5230,10 @@
 			rangemin = 64;
 			rangemax = 943;
 		}
-
-		KernelTV2PC <<<rgbblocks, threads >>> (planeRnv, length, rangemin, rangemax);
-		KernelTV2PC <<<rgbblocks, threads >>> (planeGnv, length, rangemin, rangemax);
-		KernelTV2PC <<<rgbblocks, threads >>> (planeBnv, length, rangemin, rangemax);
+		
+		KernelTV2PC10 <<<rgbblocks, threads >>> (planeRnv, length, rangemin, rangemax);
+		KernelTV2PC10 <<<rgbblocks, threads >>> (planeGnv, length, rangemin, rangemax);
+		KernelTV2PC10 <<<rgbblocks, threads >>> (planeBnv, length, rangemin, rangemax);
 
 		//allocate full UV planes buffers:
 		unsigned short* planeUnvFull;
@@ -5996,9 +6016,9 @@
 			rangemax = 943;
 		}
 
-		KernelTV2PC <<<rgbblocks, threads >>> (planeRnv, length, rangemin, rangemax);
-		KernelTV2PC <<<rgbblocks, threads >>> (planeGnv, length, rangemin, rangemax);
-		KernelTV2PC <<<rgbblocks, threads >>> (planeBnv, length, rangemin, rangemax);
+		KernelTV2PC10 <<<rgbblocks, threads >>> (planeRnv, length, rangemin, rangemax);
+		KernelTV2PC10 <<<rgbblocks, threads >>> (planeGnv, length, rangemin, rangemax);
+		KernelTV2PC10 <<<rgbblocks, threads >>> (planeBnv, length, rangemin, rangemax);
 
 		switch (yuvout)
 		{
@@ -6657,9 +6677,9 @@
 		int length = planeheight * planewidth / 2;
 		int rgbblocks = blocks(length, threads);
 
-		unsigned char* planeRnv; cudaMalloc(&planeRnv, length * 2);
-		unsigned char* planeGnv; cudaMalloc(&planeGnv, length * 2);
-		unsigned char* planeBnv; cudaMalloc(&planeBnv, length * 2);
+		unsigned short* planeRnv; cudaMalloc(&planeRnv, length * 2);
+		unsigned short* planeGnv; cudaMalloc(&planeGnv, length * 2);
+		unsigned short* planeBnv; cudaMalloc(&planeBnv, length * 2);
 
 		cudaMemcpy2D(planeRnv, planewidth, planeR, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
 		cudaMemcpy2D(planeGnv, planewidth, planeG, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
