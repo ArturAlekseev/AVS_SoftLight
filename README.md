@@ -3,7 +3,7 @@ AviSynth and VapourSynth Softlight plugin
 
 Realization of CUDA soflight negative average blend.
 
-Plugin is x64 (CUDA toolkit 12.5 & 11.8)
+Plugin is x64 (CUDA toolkit 12.6 & 11.8)
 
 You could see on Youtube videos about removing color cast using Photoshops softlight blend of negative average. This is a CUDA realization of it that process every frame.
 
@@ -13,7 +13,7 @@ And I suggest to remove noise from input before processing.
 
 **Parameters:**
 
-Softlight(mode, formula, skipblack, yuvin, yuvout, rangemin, rangemax)
+Softlight(mode, formula, skipblack, yuvin, yuvout, rangemin, rangemax, fullrange)
 
 All parameters are optional.
 
@@ -80,6 +80,18 @@ Photoshop formula was removed because of discontinuity of local contrast.
 
 Formulas are explained here: https://en.wikipedia.org/wiki/Blend_modes
 
+**rangemin & rangemax**
+These parameters are used for TV2PC color range conversion.
+If not specified, then default 16-235 (8 bit) and 64 - 963 (10 bit) will be used.
+
+**fullrange**
+By default it is 0. This means that source is in a limited color range.
+If so, then modes 0-6 will convert color range to full and back to limited inside them.
+If you want to convert range outside - you can do:
+softlight(8)
+softlight(3,fullrange=1)
+softlight(9)
+This will be slower, than when conversion is done inside. Because data will go back and forth from RAM to VRAM with each mode call.
 
 **Usage in AviSynth:**
 
@@ -138,4 +150,4 @@ Softlight(11)
 
 Install CUDA Toolkit and just compile.
 
-If you want to compile for 11.8 version just change 12.4 to 11.8 in vcxproj file.
+If you want to compile for 11.8 version just change 12.6 to 11.8 in vcxproj file.
