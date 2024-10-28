@@ -2144,7 +2144,7 @@
 		int i = blockIdx.x * blockDim.x + threadIdx.x;
 		if (i < length) {
 			Npp32f c = buf[i];
-			Npp32f lowlimit = rangemin / 1023;
+			Npp32f lowlimit = rangemin / 1023.0;
 			Npp32f highlimit = rangemax / 1023.0;
 			Npp32f range = (rangemax - rangemin) / 1023.0;
 			if (c <= lowlimit) c = 0.0; //lowerst
@@ -2907,7 +2907,7 @@
 		cudaFree(planeHSV_Vnv);
 	}
 
-	void CudaNeutralizeYUV420byRGB(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack, int yuvin, int yuvout)
+	void CudaNeutralizeYUV420byRGB(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack, int yuvin, int yuvout, int fullrange, int rangemin, int rangemax)
 	{
 		unsigned char* planeYnv;
 		unsigned char* planeUnv;
@@ -2942,6 +2942,18 @@
 			case 601: KernelYUV420toRGBRec601 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth, planeUwidth); break;
 			case 2020: KernelYUV420toRGBRec2020 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth, planeUwidth); break;
 			default: KernelYUV420toRGBRec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth, planeUwidth); break;
+		}
+
+		if (!fullrange) {
+
+			if (rangemin >= rangemax) {
+				rangemin = 16;
+				rangemax = 235;
+			}
+
+			KernelTV2PC <<<Yblocks, threads >>> (planeRnv, length, rangemin, rangemax);
+			KernelTV2PC <<<Yblocks, threads >>> (planeGnv, length, rangemin, rangemax);
+			KernelTV2PC <<<Yblocks, threads >>> (planeBnv, length, rangemin, rangemax);
 		}
 
 		Npp32f* planeHSVo_Hnv;
@@ -3051,6 +3063,12 @@
 			KernelHSV2RGB <<<Yblocks, threads >>> (planeHSVo_Hnv, planeHSVo_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, length);
 		}
 		
+		if (!fullrange) {
+			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
+			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
+			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
+		}
+
 		//allocate full UV planes buffers:
 		unsigned char* planeUnvFull;
 		unsigned char* planeVnvFull;
@@ -3097,7 +3115,7 @@
 			cudaFree(planeHSV_Snv);
 		}
 	}
-	void CudaNeutralizeYUV420byRGBwithLight(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack,int yuvin, int yuvout)
+	void CudaNeutralizeYUV420byRGBwithLight(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack,int yuvin, int yuvout, int fullrange, int rangemin, int rangemax)
 	{
 		unsigned char* planeYnv;
 		unsigned char* planeUnv;
@@ -3133,6 +3151,18 @@
 		}
 
 		int length = planeYwidth * planeYheight;
+
+		if (!fullrange) {
+
+			if (rangemin >= rangemax) {
+				rangemin = 16;
+				rangemax = 235;
+			}
+
+			KernelTV2PC << <Yblocks, threads >> > (planeRnv, length, rangemin, rangemax);
+			KernelTV2PC << <Yblocks, threads >> > (planeGnv, length, rangemin, rangemax);
+			KernelTV2PC << <Yblocks, threads >> > (planeBnv, length, rangemin, rangemax);
+		}
 
 		Npp64f Rsum = 0, Gsum = 0, Bsum = 0;
 
@@ -3209,6 +3239,12 @@
 			}
 		}
 
+		if (!fullrange) {
+			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
+			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
+			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
+		}
+
 		unsigned char* planeUnvFull;
 		unsigned char* planeVnvFull;
 		cudaMalloc(&planeUnvFull, Ylength);
@@ -3241,7 +3277,7 @@
 		cudaFree(planeUnv);
 		cudaFree(planeVnv);
 	}
-	void CudaBoostSaturationYUV420(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int formula, int yuvin, int yuvout) {
+	void CudaBoostSaturationYUV420(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int formula, int yuvin, int yuvout, int fullrange, int rangemin, int rangemax) {
 		unsigned char* planeYnv;
 		unsigned char* planeUnv;
 		unsigned char* planeVnv;
@@ -3275,6 +3311,18 @@
 		case 601: KernelYUV420toRGBRec601 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth, planeUwidth); break;
 		case 2020: KernelYUV420toRGBRec2020 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth, planeUwidth); break;
 		default: KernelYUV420toRGBRec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth, planeUwidth); break;
+		}
+
+		if (!fullrange) {
+
+			if (rangemin >= rangemax) {
+				rangemin = 16;
+				rangemax = 235;
+			}
+
+			KernelTV2PC << <Yblocks, threads >> > (planeRnv, length, rangemin, rangemax);
+			KernelTV2PC << <Yblocks, threads >> > (planeGnv, length, rangemin, rangemax);
+			KernelTV2PC << <Yblocks, threads >> > (planeBnv, length, rangemin, rangemax);
 		}
 
 		Npp32f* planeHSV_Hnv;
@@ -3314,6 +3362,12 @@
 
 		KernelHSV2RGB <<<Yblocks, threads >>> (planeHSV_Hnv, planeHSV_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, length);
 
+		if (!fullrange) {
+			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
+			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
+			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
+		}
+
 		//allocate full UV planes buffers:
 		unsigned char* planeUnvFull;
 		unsigned char* planeVnvFull;
@@ -3351,7 +3405,7 @@
 		cudaFree(planeHSV_Vnv);
 	}
 
-	void CudaNeutralizeYUV444byRGB(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack, int yuvin, int yuvout)
+	void CudaNeutralizeYUV444byRGB(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack, int yuvin, int yuvout, int fullrange, int rangemin, int rangemax)
 	{
 		unsigned char* planeYnv;
 		unsigned char* planeUnv;
@@ -3388,6 +3442,18 @@
 		case 601: KernelYUV2RGBRec601 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
 		case 2020: KernelYUV2RGBRec2020 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
 		default: KernelYUV2RGBRec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
+		}
+
+		if (!fullrange) {
+
+			if (rangemin >= rangemax) {
+				rangemin = 16;
+				rangemax = 235;
+			}
+
+			KernelTV2PC << <Yblocks, threads >> > (planeRnv, length, rangemin, rangemax);
+			KernelTV2PC << <Yblocks, threads >> > (planeGnv, length, rangemin, rangemax);
+			KernelTV2PC << <Yblocks, threads >> > (planeBnv, length, rangemin, rangemax);
 		}
 
 		Npp32f* planeHSVo_Hnv;
@@ -3497,6 +3563,12 @@
 			KernelHSV2RGB <<<Yblocks, threads >>> (planeHSVo_Hnv, planeHSVo_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, length);
 		}
 
+		if (!fullrange) {
+			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
+			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
+			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
+		}
+
 		switch (yuvout)
 		{
 		case 709: KernelRGB2YUVRec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
@@ -3528,7 +3600,7 @@
 			cudaFree(planeHSV_Snv);
 		}
 	}
-	void CudaNeutralizeYUV444byRGBwithLight(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack, int yuvin, int yuvout)
+	void CudaNeutralizeYUV444byRGBwithLight(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack, int yuvin, int yuvout, int fullrange, int rangemin, int rangemax)
 	{
 		unsigned char* planeYnv;
 		unsigned char* planeUnv;
@@ -3565,6 +3637,18 @@
 		case 601: KernelYUV2RGBRec601 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
 		case 2020: KernelYUV2RGBRec2020 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
 		default: KernelYUV2RGBRec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
+		}
+
+		if (!fullrange) {
+
+			if (rangemin >= rangemax) {
+				rangemin = 16;
+				rangemax = 235;
+			}
+
+			KernelTV2PC << <Yblocks, threads >> > (planeRnv, length, rangemin, rangemax);
+			KernelTV2PC << <Yblocks, threads >> > (planeGnv, length, rangemin, rangemax);
+			KernelTV2PC << <Yblocks, threads >> > (planeBnv, length, rangemin, rangemax);
 		}
 
 		Npp64f Rsum = 0, Gsum = 0, Bsum = 0;
@@ -3642,6 +3726,12 @@
 			}
 		}
 
+		if (!fullrange) {
+			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
+			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
+			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
+		}
+
 		switch (yuvout)
 		{
 		case 709: KernelRGB2YUVRec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
@@ -3661,7 +3751,7 @@
 		cudaFree(planeUnv);
 		cudaFree(planeVnv);
 	}
-	void CudaBoostSaturationYUV444(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int formula, int yuvin, int yuvout) {
+	void CudaBoostSaturationYUV444(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int formula, int yuvin, int yuvout, int fullrange, int rangemin, int rangemax) {
 		unsigned char* planeYnv;
 		unsigned char* planeUnv;
 		unsigned char* planeVnv;
@@ -3697,6 +3787,18 @@
 		case 601: KernelYUV2RGBRec601 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
 		case 2020: KernelYUV2RGBRec2020 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
 		default: KernelYUV2RGBRec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
+		}
+
+		if (!fullrange) {
+
+			if (rangemin >= rangemax) {
+				rangemin = 16;
+				rangemax = 235;
+			}
+
+			KernelTV2PC << <Yblocks, threads >> > (planeRnv, length, rangemin, rangemax);
+			KernelTV2PC << <Yblocks, threads >> > (planeGnv, length, rangemin, rangemax);
+			KernelTV2PC << <Yblocks, threads >> > (planeBnv, length, rangemin, rangemax);
 		}
 
 		Npp32f* planeHSV_Hnv;
@@ -3735,6 +3837,12 @@
 		KernelRGB2HSV_S <<<Yblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeHSV_Snv, length);
 
 		KernelHSV2RGB <<<Yblocks, threads >>> (planeHSV_Hnv, planeHSV_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, length);
+
+		if (!fullrange) {
+			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
+			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
+			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
+		}
 
 		switch (yuvout)
 		{
@@ -4856,7 +4964,7 @@
 
 //Main 10bit
 
-	void CudaNeutralizeYUV420byRGBwithLight10(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack, int yuvin, int yuvout)
+	void CudaNeutralizeYUV420byRGBwithLight10(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack, int yuvin, int yuvout, int fullrange, int rangemin, int rangemax)
 	{
 		unsigned short* planeYnv;
 		unsigned short* planeUnv;
@@ -4890,6 +4998,19 @@
 		case 2020: KernelYUV420toRGB10Rec2020 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2, planeUwidth / 2); break;
 		default: KernelYUV420toRGB10Rec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2, planeUwidth / 2); break;
 		}
+
+		if (!fullrange) {
+
+			if (rangemin >= rangemax) {
+				rangemin = 64;
+				rangemax = 943;
+			}
+
+			KernelTV2PC10 << <Yblocks, threads >> > (planeRnv, length, rangemin, rangemax);
+			KernelTV2PC10 << <Yblocks, threads >> > (planeGnv, length, rangemin, rangemax);
+			KernelTV2PC10 << <Yblocks, threads >> > (planeBnv, length, rangemin, rangemax);
+		}
+
 
 		Npp64f Rsum = 0, Gsum = 0, Bsum = 0;
 
@@ -4968,6 +5089,12 @@
 			}
 		}
 
+		if (!fullrange) {
+			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
+			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
+			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
+		}
+
 		unsigned short* planeUnvFull;
 		unsigned short* planeVnvFull;
 		cudaMalloc(&planeUnvFull, Ylength * 2);
@@ -5000,7 +5127,7 @@
 		cudaFree(planeUnv);
 		cudaFree(planeVnv);
 	}
-	void CudaNeutralizeYUV420byRGB10(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack, int yuvin, int yuvout)
+	void CudaNeutralizeYUV420byRGB10(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack, int yuvin, int yuvout, int fullrange, int rangemin, int rangemax)
 	{
 		unsigned short* planeYnv;
 		unsigned short* planeUnv;
@@ -5035,6 +5162,18 @@
 		case 601: KernelYUV420toRGB10Rec601 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2, planeUwidth / 2); break;
 		case 2020: KernelYUV420toRGB10Rec2020 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2, planeUwidth / 2); break;
 		default: KernelYUV420toRGB10Rec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2, planeUwidth / 2); break;
+		}
+
+		if (!fullrange) {
+
+			if (rangemin >= rangemax) {
+				rangemin = 64;
+				rangemax = 943;
+			}
+
+			KernelTV2PC10 <<<Yblocks, threads >>> (planeRnv, length, rangemin, rangemax);
+			KernelTV2PC10 <<<Yblocks, threads >>> (planeGnv, length, rangemin, rangemax);
+			KernelTV2PC10 <<<Yblocks, threads >>> (planeBnv, length, rangemin, rangemax);
 		}
 
 		Npp32f* planeHSVo_Hnv;
@@ -5142,6 +5281,12 @@
 		else if (type == 1)
 		{
 			KernelHSV2RGB10 <<<Yblocks, threads >>> (planeHSVo_Hnv, planeHSVo_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, length);
+		}
+
+		if (!fullrange) {
+			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
+			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
+			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
 		}
 
 		//allocate full UV planes buffers:
@@ -5414,7 +5559,7 @@
 		cudaFree(planeUnv);
 		cudaFree(planeVnv);
 	}
-	void CudaBoostSaturationYUV42010(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int formula, int yuvin, int yuvout) {
+	void CudaBoostSaturationYUV42010(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int formula, int yuvin, int yuvout, int fullrange, int rangemin, int rangemax) {
 		unsigned short* planeYnv;
 		unsigned short* planeUnv;
 		unsigned short* planeVnv;
@@ -5446,6 +5591,18 @@
 		case 601: KernelYUV420toRGB10Rec601 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2, planeUwidth / 2); break;
 		case 2020: KernelYUV420toRGB10Rec2020 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2, planeUwidth / 2); break;
 		default: KernelYUV420toRGB10Rec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2, planeUwidth / 2); break;
+		}
+
+		if (!fullrange) {
+
+			if (rangemin >= rangemax) {
+				rangemin = 64;
+				rangemax = 943;
+			}
+
+			KernelTV2PC10 << <Yblocks, threads >> > (planeRnv, length, rangemin, rangemax);
+			KernelTV2PC10 << <Yblocks, threads >> > (planeGnv, length, rangemin, rangemax);
+			KernelTV2PC10 << <Yblocks, threads >> > (planeBnv, length, rangemin, rangemax);
 		}
 
 		Npp32f* planeHSV_Hnv;
@@ -5484,6 +5641,12 @@
 		KernelRGB2HSV_S10 <<<Yblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeHSV_Snv, length);
 
 		KernelHSV2RGB10 <<<Yblocks, threads >>> (planeHSV_Hnv, planeHSV_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, length);
+
+		if (!fullrange) {
+			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
+			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
+			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
+		}
 
 		//allocate full UV planes buffers:
 		unsigned short* planeUnvFull;
@@ -5671,7 +5834,7 @@
 		cudaFree(planeVnv);
 	}
 
-	void CudaNeutralizeYUV444byRGBwithLight10(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack, int yuvin, int yuvout)
+	void CudaNeutralizeYUV444byRGBwithLight10(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack, int yuvin, int yuvout, int fullrange, int rangemin, int rangemax)
 	{
 		unsigned short* planeYnv;
 		unsigned short* planeUnv;
@@ -5703,6 +5866,18 @@
 		case 601: KernelYUV2RGB10Rec601 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
 		case 2020: KernelYUV2RGB10Rec2020 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
 		default: KernelYUV2RGB10Rec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
+		}
+
+		if (!fullrange) {
+
+			if (rangemin >= rangemax) {
+				rangemin = 64;
+				rangemax = 943;
+			}
+
+			KernelTV2PC10 << <Yblocks, threads >> > (planeRnv, length, rangemin, rangemax);
+			KernelTV2PC10 << <Yblocks, threads >> > (planeGnv, length, rangemin, rangemax);
+			KernelTV2PC10 << <Yblocks, threads >> > (planeBnv, length, rangemin, rangemax);
 		}
 
 		Npp64f Rsum = 0, Gsum = 0, Bsum = 0;
@@ -5782,6 +5957,12 @@
 			}
 		}
 
+		if (!fullrange) {
+			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
+			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
+			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
+		}
+
 		switch (yuvout)
 		{
 		case 709: KernelRGB2YUV10Rec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
@@ -5801,7 +5982,7 @@
 		cudaFree(planeUnv);
 		cudaFree(planeVnv);
 	}
-	void CudaNeutralizeYUV444byRGB10(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack, int yuvin, int yuvout)
+	void CudaNeutralizeYUV444byRGB10(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack, int yuvin, int yuvout, int fullrange, int rangemin, int rangemax)
 	{
 		unsigned short* planeYnv;
 		unsigned short* planeUnv;
@@ -5834,6 +6015,18 @@
 		case 601: KernelYUV2RGB10Rec601 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
 		case 2020: KernelYUV2RGB10Rec2020 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
 		default: KernelYUV2RGB10Rec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
+		}
+
+		if (!fullrange) {
+
+			if (rangemin >= rangemax) {
+				rangemin = 64;
+				rangemax = 943;
+			}
+
+			KernelTV2PC10 << <Yblocks, threads >> > (planeRnv, length, rangemin, rangemax);
+			KernelTV2PC10 << <Yblocks, threads >> > (planeGnv, length, rangemin, rangemax);
+			KernelTV2PC10 << <Yblocks, threads >> > (planeBnv, length, rangemin, rangemax);
 		}
 
 		Npp32f* planeHSVo_Hnv;
@@ -5941,6 +6134,12 @@
 		else if (type == 1)
 		{
 			KernelHSV2RGB10 <<<Yblocks, threads >>> (planeHSVo_Hnv, planeHSVo_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, length);
+		}
+
+		if (!fullrange) {
+			KernelPC2TV <<<Yblocks, threads >>> (planeRnv, length);
+			KernelPC2TV <<<Yblocks, threads >>> (planeGnv, length);
+			KernelPC2TV <<<Yblocks, threads >>> (planeBnv, length);
 		}
 
 		switch (yuvout)
@@ -6157,7 +6356,7 @@
 		cudaFree(planeUnv);
 		cudaFree(planeVnv);
 	}
-	void CudaBoostSaturationYUV44410(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int formula, int yuvin, int yuvout) {
+	void CudaBoostSaturationYUV44410(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int formula, int yuvin, int yuvout, int fullrange, int rangemin, int rangemax) {
 		unsigned short* planeYnv;
 		unsigned short* planeUnv;
 		unsigned short* planeVnv;
@@ -6189,6 +6388,18 @@
 		case 601: KernelYUV2RGB10Rec601 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
 		case 2020: KernelYUV2RGB10Rec2020 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
 		default: KernelYUV2RGB10Rec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
+		}
+
+		if (!fullrange) {
+
+			if (rangemin >= rangemax) {
+				rangemin = 64;
+				rangemax = 943;
+			}
+
+			KernelTV2PC10 << <Yblocks, threads >> > (planeRnv, length, rangemin, rangemax);
+			KernelTV2PC10 << <Yblocks, threads >> > (planeGnv, length, rangemin, rangemax);
+			KernelTV2PC10 << <Yblocks, threads >> > (planeBnv, length, rangemin, rangemax);
 		}
 
 		Npp32f* planeHSV_Hnv;
@@ -6227,6 +6438,12 @@
 		KernelRGB2HSV_S10 <<<Yblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeHSV_Snv, length);
 
 		KernelHSV2RGB10 <<<Yblocks, threads >>> (planeHSV_Hnv, planeHSV_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, length);
+
+		if (!fullrange) {
+			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
+			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
+			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
+		}
 
 		switch (yuvout)
 		{
