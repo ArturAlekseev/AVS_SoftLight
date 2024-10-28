@@ -2944,7 +2944,7 @@
 			default: KernelYUV420toRGBRec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth, planeUwidth); break;
 		}
 
-		if (!fullrange) {
+		if (fullrange==0) {
 
 			if (rangemin >= rangemax) {
 				rangemin = 16;
@@ -3063,7 +3063,7 @@
 			KernelHSV2RGB <<<Yblocks, threads >>> (planeHSVo_Hnv, planeHSVo_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, length);
 		}
 		
-		if (!fullrange) {
+		if (fullrange==0) {
 			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
@@ -3152,7 +3152,7 @@
 
 		int length = planeYwidth * planeYheight;
 
-		if (!fullrange) {
+		if (fullrange==0) {
 
 			if (rangemin >= rangemax) {
 				rangemin = 16;
@@ -3239,7 +3239,7 @@
 			}
 		}
 
-		if (!fullrange) {
+		if (fullrange==0) {
 			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
@@ -3313,7 +3313,7 @@
 		default: KernelYUV420toRGBRec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth, planeUwidth); break;
 		}
 
-		if (!fullrange) {
+		if (fullrange==0) {
 
 			if (rangemin >= rangemax) {
 				rangemin = 16;
@@ -3362,7 +3362,7 @@
 
 		KernelHSV2RGB <<<Yblocks, threads >>> (planeHSV_Hnv, planeHSV_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, length);
 
-		if (!fullrange) {
+		if (fullrange==0) {
 			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
@@ -3444,7 +3444,7 @@
 		default: KernelYUV2RGBRec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
 		}
 
-		if (!fullrange) {
+		if (fullrange==0) {
 
 			if (rangemin >= rangemax) {
 				rangemin = 16;
@@ -3563,7 +3563,7 @@
 			KernelHSV2RGB <<<Yblocks, threads >>> (planeHSVo_Hnv, planeHSVo_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, length);
 		}
 
-		if (!fullrange) {
+		if (fullrange==0) {
 			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
@@ -3639,7 +3639,7 @@
 		default: KernelYUV2RGBRec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
 		}
 
-		if (!fullrange) {
+		if (fullrange==0) {
 
 			if (rangemin >= rangemax) {
 				rangemin = 16;
@@ -3726,7 +3726,7 @@
 			}
 		}
 
-		if (!fullrange) {
+		if (fullrange==0) {
 			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
@@ -3789,7 +3789,7 @@
 		default: KernelYUV2RGBRec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
 		}
 
-		if (!fullrange) {
+		if (fullrange==0) {
 
 			if (rangemin >= rangemax) {
 				rangemin = 16;
@@ -3838,7 +3838,7 @@
 
 		KernelHSV2RGB <<<Yblocks, threads >>> (planeHSV_Hnv, planeHSV_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, length);
 
-		if (!fullrange) {
+		if (fullrange==0) {
 			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
@@ -4999,7 +4999,7 @@
 		default: KernelYUV420toRGB10Rec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2, planeUwidth / 2); break;
 		}
 
-		if (!fullrange) {
+		if (fullrange==0) {
 
 			if (rangemin >= rangemax) {
 				rangemin = 64;
@@ -5089,7 +5089,7 @@
 			}
 		}
 
-		if (!fullrange) {
+		if (fullrange==0) {
 			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
@@ -5164,7 +5164,7 @@
 		default: KernelYUV420toRGB10Rec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2, planeUwidth / 2); break;
 		}
 
-		if (!fullrange) {
+		if (fullrange==0) {
 
 			if (rangemin >= rangemax) {
 				rangemin = 64;
@@ -5283,7 +5283,7 @@
 			KernelHSV2RGB10 <<<Yblocks, threads >>> (planeHSVo_Hnv, planeHSVo_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, length);
 		}
 
-		if (!fullrange) {
+		if (fullrange==0) {
 			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
@@ -5593,7 +5593,7 @@
 		default: KernelYUV420toRGB10Rec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2, planeUwidth / 2); break;
 		}
 
-		if (!fullrange) {
+		if (fullrange==0) {
 
 			if (rangemin >= rangemax) {
 				rangemin = 64;
@@ -5642,7 +5642,7 @@
 
 		KernelHSV2RGB10 <<<Yblocks, threads >>> (planeHSV_Hnv, planeHSV_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, length);
 
-		if (!fullrange) {
+		if (fullrange==0) {
 			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
@@ -5868,7 +5868,7 @@
 		default: KernelYUV2RGB10Rec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
 		}
 
-		if (!fullrange) {
+		if (fullrange==0) {
 
 			if (rangemin >= rangemax) {
 				rangemin = 64;
@@ -5957,7 +5957,7 @@
 			}
 		}
 
-		if (!fullrange) {
+		if (fullrange==0) {
 			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
@@ -6017,7 +6017,7 @@
 		default: KernelYUV2RGB10Rec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
 		}
 
-		if (!fullrange) {
+		if (fullrange==0) {
 
 			if (rangemin >= rangemax) {
 				rangemin = 64;
@@ -6136,7 +6136,7 @@
 			KernelHSV2RGB10 <<<Yblocks, threads >>> (planeHSVo_Hnv, planeHSVo_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, length);
 		}
 
-		if (!fullrange) {
+		if (fullrange==0) {
 			KernelPC2TV <<<Yblocks, threads >>> (planeRnv, length);
 			KernelPC2TV <<<Yblocks, threads >>> (planeGnv, length);
 			KernelPC2TV <<<Yblocks, threads >>> (planeBnv, length);
@@ -6390,7 +6390,7 @@
 		default: KernelYUV2RGB10Rec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
 		}
 
-		if (!fullrange) {
+		if (fullrange==0) {
 
 			if (rangemin >= rangemax) {
 				rangemin = 64;
@@ -6439,7 +6439,7 @@
 
 		KernelHSV2RGB10 <<<Yblocks, threads >>> (planeHSV_Hnv, planeHSV_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, length);
 
-		if (!fullrange) {
+		if (fullrange==0) {
 			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
