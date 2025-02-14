@@ -3,7 +3,7 @@ AviSynth and VapourSynth Softlight plugin
 
 Realization of CUDA soflight negative average blend.
 
-Plugin is x64 (CUDA toolkit 12.6 & 11.8)
+Plugin is x64 (CUDA toolkit 12.8 & 11.8)
 
 You could see on Youtube videos about removing color cast using Photoshops softlight blend of negative average. This is a CUDA realization of it that process every frame.
 
@@ -13,7 +13,7 @@ And I suggest to remove noise from input before processing.
 
 **Parameters:**
 
-Softlight(mode, formula, skipblack, yuvin, yuvout, rangemin, rangemax, fullrange)
+Softlight(mode, formula, skipblack, yuvin, yuvout, rangemin, rangemax, changerange)
 
 All parameters are optional.
 
@@ -84,13 +84,30 @@ Formulas are explained here: https://en.wikipedia.org/wiki/Blend_modes
 These parameters are used for TV2PC color range conversion.
 If not specified, then default 16-235 (8 bit) and 64 - 963 (10 bit) will be used.
 
-**fullrange**
-By default it is 0. This means that source is in a limited color range.
-If so, then modes 0-6 will convert color range to full and back to limited inside them.
-If you want to convert range outside - you can do:
-softlight(8)
-softlight(3,fullrange=1)
-softlight(9)
+**changerange**
+Previously named "fullrange". But not only name was changed - now it works different.
+By default it is 0.
+When 0 it will treat YUV as limited range and RGB as full range. This means that for YUV it will rerange it to full before processing and for RGB it will not rerange.
+Else if it is 1, then YUV will not be reranged and RGB will be reranged.
+So, for example, if your source is RGB but in limited range (that is not normal) you should do:
+
+softlight(3,changerange=1).
+
+This will rerange RGB to full range, process it, and rerange to limited back.
+But if your RGB source is normal (full range), then
+
+softlight(3)
+
+will not rerange anything.
+
+Example for range conversion outside for YUV source:
+
+softlight(8) - we change YUV to full range
+
+softlight(3,changerange=1) - we process "not normal" YUV without reranging it
+
+softlight(9) - we make it back to "normal" limited range YUV
+                                                            
 This will be slower, than when conversion is done inside. Because data will go back and forth from RAM to VRAM with each mode call.
 
 **Usage in AviSynth:**
@@ -139,7 +156,7 @@ About **OETF & EOTF** functions.
 
 They are added just to play with. EOTF is a reverse of OETF.
 
-Try OETF function when your source is converted to PC range. To convert to PC range use Softlight(8). If result after OETF lacks of contrast then try to change black level higher that 16 like so:
+Try OETF function when your source is converted to PC range. To convert to PC range use Softlight(8). If result after OETF lacks of contrast then try to change black level higher than 16 like so:
 
 Softlight(8, rangemin=16, rangemax=235)
 
@@ -150,4 +167,4 @@ Softlight(11)
 
 Install CUDA Toolkit and just compile.
 
-If you want to compile for 11.8 version just change 12.6 to 11.8 in vcxproj file.
+If you want to compile for 11.8 version just change 12.8 to 11.8 in vcxproj file.

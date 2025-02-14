@@ -2291,7 +2291,7 @@
 
 //Main functions
 
-	void CudaNeutralizeRGB(unsigned char* planeR, unsigned char* planeG, unsigned char* planeB, int planeheight, int planewidth, int planepitch, int threads, int type, int formula, int skipblack) {
+	void CudaNeutralizeRGB(unsigned char* planeR, unsigned char* planeG, unsigned char* planeB, int planeheight, int planewidth, int planepitch, int threads, int type, int formula, int skipblack, int changerange, int rangemin, int rangemax) {
 
 		int length = planeheight * planewidth;
 		int rgbblocks = blocks(length, threads);
@@ -2304,6 +2304,18 @@
 		cudaMemcpy2D(planeRnv, planewidth, planeR, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
 		cudaMemcpy2D(planeGnv, planewidth, planeG, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
 		cudaMemcpy2D(planeBnv, planewidth, planeB, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
+
+		if (changerange == 1) {
+
+			if (rangemin >= rangemax) {
+				rangemin = 16;
+				rangemax = 235;
+			}
+
+			KernelTV2PC << <rgbblocks, threads >> > (planeRnv, length, rangemin, rangemax);
+			KernelTV2PC << <rgbblocks, threads >> > (planeGnv, length, rangemin, rangemax);
+			KernelTV2PC << <rgbblocks, threads >> > (planeBnv, length, rangemin, rangemax);
+		}
 
 		Npp32f* planeHSVo_Hnv;
 		Npp32f* planeHSVo_Snv;
@@ -2412,6 +2424,12 @@
 			KernelHSV2RGB <<<rgbblocks, threads >>> (planeHSVo_Hnv, planeHSVo_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, length);
 		}
 
+		if (changerange == 1) {
+			KernelPC2TV << <rgbblocks, threads >> > (planeRnv, length);
+			KernelPC2TV << <rgbblocks, threads >> > (planeGnv, length);
+			KernelPC2TV << <rgbblocks, threads >> > (planeBnv, length);
+		}
+
 		cudaMemcpy2D(planeR, planepitch, planeRnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
 		cudaMemcpy2D(planeG, planepitch, planeGnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
 		cudaMemcpy2D(planeB, planepitch, planeBnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
@@ -2433,7 +2451,7 @@
 			cudaFree(planeHSV_Snv);
 		}
 	}
-	void CudaNeutralizeRGBwithLight(unsigned char* planeR, unsigned char* planeG, unsigned char* planeB, int planeheight, int planewidth, int planepitch, int threads, int type, int formula, int skipblack)
+	void CudaNeutralizeRGBwithLight(unsigned char* planeR, unsigned char* planeG, unsigned char* planeB, int planeheight, int planewidth, int planepitch, int threads, int type, int formula, int skipblack, int changerange, int rangemin, int rangemax)
 	{
 		int length = planeheight * planewidth;
 		int rgbblocks = blocks(length, threads);
@@ -2445,6 +2463,18 @@
 		cudaMemcpy2D(planeRnv, planewidth, planeR, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
 		cudaMemcpy2D(planeGnv, planewidth, planeG, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
 		cudaMemcpy2D(planeBnv, planewidth, planeB, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
+
+		if (changerange == 1) {
+
+			if (rangemin >= rangemax) {
+				rangemin = 16;
+				rangemax = 235;
+			}
+
+			KernelTV2PC << <rgbblocks, threads >> > (planeRnv, length, rangemin, rangemax);
+			KernelTV2PC << <rgbblocks, threads >> > (planeGnv, length, rangemin, rangemax);
+			KernelTV2PC << <rgbblocks, threads >> > (planeBnv, length, rangemin, rangemax);
+		}
 
 		unsigned long long Rsum = 0, Gsum = 0, Bsum = 0;
 
@@ -2520,6 +2550,12 @@
 			}
 		}
 
+		if (changerange == 1) {
+			KernelPC2TV << <rgbblocks, threads >> > (planeRnv, length);
+			KernelPC2TV << <rgbblocks, threads >> > (planeGnv, length);
+			KernelPC2TV << <rgbblocks, threads >> > (planeBnv, length);
+		}
+
 		cudaMemcpy2D(planeR, planepitch, planeRnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
 		cudaMemcpy2D(planeG, planepitch, planeGnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
 		cudaMemcpy2D(planeB, planepitch, planeBnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
@@ -2528,7 +2564,7 @@
 		cudaFree(planeGnv);
 		cudaFree(planeBnv);
 	}
-	void CudaBoostSaturationRGB(unsigned char* planeR, unsigned char* planeG, unsigned char* planeB, int planeheight, int planewidth, int planepitch, int threads, int formula)
+	void CudaBoostSaturationRGB(unsigned char* planeR, unsigned char* planeG, unsigned char* planeB, int planeheight, int planewidth, int planepitch, int threads, int formula, int changerange, int rangemin, int rangemax)
 	{
 		int length = planeheight * planewidth;
 		int rgbblocks = blocks(length, threads);
@@ -2542,6 +2578,18 @@
 		cudaMemcpy2D(planeRnv, planewidth, planeR, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
 		cudaMemcpy2D(planeGnv, planewidth, planeG, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
 		cudaMemcpy2D(planeBnv, planewidth, planeB, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
+
+		if (changerange == 1) {
+
+			if (rangemin >= rangemax) {
+				rangemin = 16;
+				rangemax = 235;
+			}
+
+			KernelTV2PC << <rgbblocks, threads >> > (planeRnv, length, rangemin, rangemax);
+			KernelTV2PC << <rgbblocks, threads >> > (planeGnv, length, rangemin, rangemax);
+			KernelTV2PC << <rgbblocks, threads >> > (planeBnv, length, rangemin, rangemax);
+		}
 
 		Npp32f* planeHSV_Hnv;
 		Npp32f* planeHSV_Snv;
@@ -2580,6 +2628,12 @@
 
 		KernelHSV2RGB <<<rgbblocks, threads >>> (planeHSV_Hnv, planeHSV_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, length);
 
+		if (changerange == 1) {
+			KernelPC2TV << <rgbblocks, threads >> > (planeRnv, length);
+			KernelPC2TV << <rgbblocks, threads >> > (planeGnv, length);
+			KernelPC2TV << <rgbblocks, threads >> > (planeBnv, length);
+		}
+
 		cudaMemcpy2D(planeR, planepitch, planeRnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
 		cudaMemcpy2D(planeG, planepitch, planeGnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
 		cudaMemcpy2D(planeB, planepitch, planeBnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
@@ -2592,7 +2646,7 @@
 		cudaFree(planeHSV_Vnv);
 	}
 	
-	void CudaNeutralizeRGB32(unsigned char* plane, int planeheight, int planewidth, int planepitch, int threads, int type, int formula, int skipblack) {
+	void CudaNeutralizeRGB32(unsigned char* plane, int planeheight, int planewidth, int planepitch, int threads, int type, int formula, int skipblack, int changerange, int rangemin, int rangemax) {
 
 		int bgrLength = planeheight * planepitch;
 		int bgrblocks = blocks(bgrLength / 4, threads);
@@ -2609,6 +2663,18 @@
 
 		cudaMemcpy(planeBGRnv, plane, bgrLength, cudaMemcpyHostToDevice);
 		KernelBGRtoRGB <<<bgrblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeBGRnv, planewidth, planeheight, planewidth, planepitch);
+
+		if (changerange == 1) {
+
+			if (rangemin >= rangemax) {
+				rangemin = 16;
+				rangemax = 235;
+			}
+
+			KernelTV2PC << <rgbblocks, threads >> > (planeRnv, length, rangemin, rangemax);
+			KernelTV2PC << <rgbblocks, threads >> > (planeGnv, length, rangemin, rangemax);
+			KernelTV2PC << <rgbblocks, threads >> > (planeBnv, length, rangemin, rangemax);
+		}
 
 		Npp32f* planeHSVo_Hnv;
 		Npp32f* planeHSVo_Snv;
@@ -2717,6 +2783,12 @@
 			KernelHSV2RGB <<<rgbblocks, threads >>> (planeHSVo_Hnv, planeHSVo_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, length);
 		}
 
+		if (changerange == 1) {
+			KernelPC2TV << <rgbblocks, threads >> > (planeRnv, length);
+			KernelPC2TV << <rgbblocks, threads >> > (planeGnv, length);
+			KernelPC2TV << <rgbblocks, threads >> > (planeBnv, length);
+		}
+
 		KernelRGBtoBGR <<<rgbblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeBGRnv, planewidth, planeheight, planewidth, planepitch);
 
 		cudaMemcpy(plane, planeBGRnv, bgrLength, cudaMemcpyDeviceToHost);
@@ -2739,7 +2811,7 @@
 			cudaFree(planeHSV_Snv);
 		}
 	}
-	void CudaNeutralizeRGB32withLight(unsigned char* plane, int planeheight, int planewidth, int planepitch, int threads, int type, int formula, int skipblack)
+	void CudaNeutralizeRGB32withLight(unsigned char* plane, int planeheight, int planewidth, int planepitch, int threads, int type, int formula, int skipblack, int changerange, int rangemin, int rangemax)
 	{
 		int bgrLength = planeheight * planepitch;
 		int bgrblocks = blocks(bgrLength / 4, threads);
@@ -2755,6 +2827,18 @@
 		cudaMemcpy(planeBGRnv, plane, bgrLength, cudaMemcpyHostToDevice);
 
 		KernelBGRtoRGB <<<bgrblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeBGRnv, planewidth, planeheight, planewidth, planepitch);
+
+		if (changerange == 1) {
+
+			if (rangemin >= rangemax) {
+				rangemin = 16;
+				rangemax = 235;
+			}
+
+			KernelTV2PC << <rgbblocks, threads >> > (planeRnv, length, rangemin, rangemax);
+			KernelTV2PC << <rgbblocks, threads >> > (planeGnv, length, rangemin, rangemax);
+			KernelTV2PC << <rgbblocks, threads >> > (planeBnv, length, rangemin, rangemax);
+		}
 
 		unsigned long long Rsum = 0, Gsum = 0, Bsum = 0;
 
@@ -2830,6 +2914,12 @@
 			}
 		}
 
+		if (changerange == 1) {
+			KernelPC2TV << <rgbblocks, threads >> > (planeRnv, length);
+			KernelPC2TV << <rgbblocks, threads >> > (planeGnv, length);
+			KernelPC2TV << <rgbblocks, threads >> > (planeBnv, length);
+		}
+
 		KernelRGBtoBGR <<<rgbblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeBGRnv, planewidth, planeheight, planewidth, planepitch);
 
 		cudaMemcpy(plane, planeBGRnv, bgrLength, cudaMemcpyDeviceToHost);
@@ -2839,7 +2929,7 @@
 		cudaFree(planeBnv);
 		cudaFree(planeBGRnv);
 	}
-	void CudaBoostSaturationRGB32(unsigned char* plane, int planeheight, int planewidth, int planepitch, int threads, int formula)
+	void CudaBoostSaturationRGB32(unsigned char* plane, int planeheight, int planewidth, int planepitch, int threads, int formula, int changerange, int rangemin, int rangemax)
 	{
 		int bgrLength = planeheight * planepitch;
 		int bgrblocks = blocks(bgrLength / 4, threads);
@@ -2856,6 +2946,18 @@
 
 		cudaMemcpy(planeBGRnv, plane, bgrLength, cudaMemcpyHostToDevice);
 		KernelBGRtoRGB <<<bgrblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeBGRnv, planewidth, planeheight, planewidth, planepitch);
+
+		if (changerange == 1) {
+
+			if (rangemin >= rangemax) {
+				rangemin = 16;
+				rangemax = 235;
+			}
+
+			KernelTV2PC << <rgbblocks, threads >> > (planeRnv, length, rangemin, rangemax);
+			KernelTV2PC << <rgbblocks, threads >> > (planeGnv, length, rangemin, rangemax);
+			KernelTV2PC << <rgbblocks, threads >> > (planeBnv, length, rangemin, rangemax);
+		}
 
 		Npp32f* planeHSV_Hnv;
 		Npp32f* planeHSV_Snv;
@@ -2894,6 +2996,12 @@
 
 		KernelHSV2RGB <<<rgbblocks, threads >>> (planeHSV_Hnv, planeHSV_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, length);
 
+		if (changerange == 1) {
+			KernelPC2TV << <rgbblocks, threads >> > (planeRnv, length);
+			KernelPC2TV << <rgbblocks, threads >> > (planeGnv, length);
+			KernelPC2TV << <rgbblocks, threads >> > (planeBnv, length);
+		}
+
 		KernelRGBtoBGR <<<rgbblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeBGRnv, planewidth, planeheight, planewidth, planepitch);
 
 		cudaMemcpy(plane, planeBGRnv, bgrLength, cudaMemcpyDeviceToHost);
@@ -2907,7 +3015,7 @@
 		cudaFree(planeHSV_Vnv);
 	}
 
-	void CudaNeutralizeYUV420byRGB(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack, int yuvin, int yuvout, int fullrange, int rangemin, int rangemax)
+	void CudaNeutralizeYUV420byRGB(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack, int yuvin, int yuvout, int changerange, int rangemin, int rangemax)
 	{
 		unsigned char* planeYnv;
 		unsigned char* planeUnv;
@@ -2944,7 +3052,7 @@
 			default: KernelYUV420toRGBRec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth, planeUwidth); break;
 		}
 
-		if (fullrange==0) {
+		if (changerange==0) {
 
 			if (rangemin >= rangemax) {
 				rangemin = 16;
@@ -3063,7 +3171,7 @@
 			KernelHSV2RGB <<<Yblocks, threads >>> (planeHSVo_Hnv, planeHSVo_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, length);
 		}
 		
-		if (fullrange==0) {
+		if (changerange==0) {
 			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
@@ -3115,7 +3223,7 @@
 			cudaFree(planeHSV_Snv);
 		}
 	}
-	void CudaNeutralizeYUV420byRGBwithLight(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack,int yuvin, int yuvout, int fullrange, int rangemin, int rangemax)
+	void CudaNeutralizeYUV420byRGBwithLight(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack,int yuvin, int yuvout, int changerange, int rangemin, int rangemax)
 	{
 		unsigned char* planeYnv;
 		unsigned char* planeUnv;
@@ -3152,7 +3260,7 @@
 
 		int length = planeYwidth * planeYheight;
 
-		if (fullrange==0) {
+		if (changerange==0) {
 
 			if (rangemin >= rangemax) {
 				rangemin = 16;
@@ -3239,7 +3347,7 @@
 			}
 		}
 
-		if (fullrange==0) {
+		if (changerange==0) {
 			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
@@ -3277,7 +3385,7 @@
 		cudaFree(planeUnv);
 		cudaFree(planeVnv);
 	}
-	void CudaBoostSaturationYUV420(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int formula, int yuvin, int yuvout, int fullrange, int rangemin, int rangemax) {
+	void CudaBoostSaturationYUV420(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int formula, int yuvin, int yuvout, int changerange, int rangemin, int rangemax) {
 		unsigned char* planeYnv;
 		unsigned char* planeUnv;
 		unsigned char* planeVnv;
@@ -3313,7 +3421,7 @@
 		default: KernelYUV420toRGBRec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth, planeUwidth); break;
 		}
 
-		if (fullrange==0) {
+		if (changerange==0) {
 
 			if (rangemin >= rangemax) {
 				rangemin = 16;
@@ -3362,7 +3470,7 @@
 
 		KernelHSV2RGB <<<Yblocks, threads >>> (planeHSV_Hnv, planeHSV_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, length);
 
-		if (fullrange==0) {
+		if (changerange==0) {
 			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
@@ -3405,7 +3513,7 @@
 		cudaFree(planeHSV_Vnv);
 	}
 
-	void CudaNeutralizeYUV444byRGB(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack, int yuvin, int yuvout, int fullrange, int rangemin, int rangemax)
+	void CudaNeutralizeYUV444byRGB(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack, int yuvin, int yuvout, int changerange, int rangemin, int rangemax)
 	{
 		unsigned char* planeYnv;
 		unsigned char* planeUnv;
@@ -3444,7 +3552,7 @@
 		default: KernelYUV2RGBRec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
 		}
 
-		if (fullrange==0) {
+		if (changerange==0) {
 
 			if (rangemin >= rangemax) {
 				rangemin = 16;
@@ -3563,7 +3671,7 @@
 			KernelHSV2RGB <<<Yblocks, threads >>> (planeHSVo_Hnv, planeHSVo_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, length);
 		}
 
-		if (fullrange==0) {
+		if (changerange==0) {
 			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
@@ -3600,7 +3708,7 @@
 			cudaFree(planeHSV_Snv);
 		}
 	}
-	void CudaNeutralizeYUV444byRGBwithLight(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack, int yuvin, int yuvout, int fullrange, int rangemin, int rangemax)
+	void CudaNeutralizeYUV444byRGBwithLight(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack, int yuvin, int yuvout, int changerange, int rangemin, int rangemax)
 	{
 		unsigned char* planeYnv;
 		unsigned char* planeUnv;
@@ -3639,7 +3747,7 @@
 		default: KernelYUV2RGBRec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
 		}
 
-		if (fullrange==0) {
+		if (changerange==0) {
 
 			if (rangemin >= rangemax) {
 				rangemin = 16;
@@ -3726,7 +3834,7 @@
 			}
 		}
 
-		if (fullrange==0) {
+		if (changerange==0) {
 			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
@@ -3751,7 +3859,7 @@
 		cudaFree(planeUnv);
 		cudaFree(planeVnv);
 	}
-	void CudaBoostSaturationYUV444(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int formula, int yuvin, int yuvout, int fullrange, int rangemin, int rangemax) {
+	void CudaBoostSaturationYUV444(unsigned char* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned char* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned char* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int formula, int yuvin, int yuvout, int changerange, int rangemin, int rangemax) {
 		unsigned char* planeYnv;
 		unsigned char* planeUnv;
 		unsigned char* planeVnv;
@@ -3789,7 +3897,7 @@
 		default: KernelYUV2RGBRec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth, planeYheight, planeYwidth); break;
 		}
 
-		if (fullrange==0) {
+		if (changerange==0) {
 
 			if (rangemin >= rangemax) {
 				rangemin = 16;
@@ -3838,7 +3946,7 @@
 
 		KernelHSV2RGB <<<Yblocks, threads >>> (planeHSV_Hnv, planeHSV_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, length);
 
-		if (fullrange==0) {
+		if (changerange==0) {
 			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
@@ -4964,7 +5072,7 @@
 
 //Main 10bit
 
-	void CudaNeutralizeYUV420byRGBwithLight10(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack, int yuvin, int yuvout, int fullrange, int rangemin, int rangemax)
+	void CudaNeutralizeYUV420byRGBwithLight10(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack, int yuvin, int yuvout, int changerange, int rangemin, int rangemax)
 	{
 		unsigned short* planeYnv;
 		unsigned short* planeUnv;
@@ -4999,7 +5107,7 @@
 		default: KernelYUV420toRGB10Rec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2, planeUwidth / 2); break;
 		}
 
-		if (fullrange==0) {
+		if (changerange==0) {
 
 			if (rangemin >= rangemax) {
 				rangemin = 64;
@@ -5089,7 +5197,7 @@
 			}
 		}
 
-		if (fullrange==0) {
+		if (changerange==0) {
 			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
@@ -5127,7 +5235,7 @@
 		cudaFree(planeUnv);
 		cudaFree(planeVnv);
 	}
-	void CudaNeutralizeYUV420byRGB10(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack, int yuvin, int yuvout, int fullrange, int rangemin, int rangemax)
+	void CudaNeutralizeYUV420byRGB10(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack, int yuvin, int yuvout, int changerange, int rangemin, int rangemax)
 	{
 		unsigned short* planeYnv;
 		unsigned short* planeUnv;
@@ -5164,7 +5272,7 @@
 		default: KernelYUV420toRGB10Rec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2, planeUwidth / 2); break;
 		}
 
-		if (fullrange==0) {
+		if (changerange==0) {
 
 			if (rangemin >= rangemax) {
 				rangemin = 64;
@@ -5283,7 +5391,7 @@
 			KernelHSV2RGB10 <<<Yblocks, threads >>> (planeHSVo_Hnv, planeHSVo_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, length);
 		}
 
-		if (fullrange==0) {
+		if (changerange==0) {
 			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
@@ -5559,7 +5667,7 @@
 		cudaFree(planeUnv);
 		cudaFree(planeVnv);
 	}
-	void CudaBoostSaturationYUV42010(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int formula, int yuvin, int yuvout, int fullrange, int rangemin, int rangemax) {
+	void CudaBoostSaturationYUV42010(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int formula, int yuvin, int yuvout, int changerange, int rangemin, int rangemax) {
 		unsigned short* planeYnv;
 		unsigned short* planeUnv;
 		unsigned short* planeVnv;
@@ -5593,7 +5701,7 @@
 		default: KernelYUV420toRGB10Rec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2, planeUwidth / 2); break;
 		}
 
-		if (fullrange==0) {
+		if (changerange==0) {
 
 			if (rangemin >= rangemax) {
 				rangemin = 64;
@@ -5642,7 +5750,7 @@
 
 		KernelHSV2RGB10 <<<Yblocks, threads >>> (planeHSV_Hnv, planeHSV_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, length);
 
-		if (fullrange==0) {
+		if (changerange==0) {
 			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
@@ -5834,7 +5942,7 @@
 		cudaFree(planeVnv);
 	}
 
-	void CudaNeutralizeYUV444byRGBwithLight10(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack, int yuvin, int yuvout, int fullrange, int rangemin, int rangemax)
+	void CudaNeutralizeYUV444byRGBwithLight10(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack, int yuvin, int yuvout, int changerange, int rangemin, int rangemax)
 	{
 		unsigned short* planeYnv;
 		unsigned short* planeUnv;
@@ -5868,7 +5976,7 @@
 		default: KernelYUV2RGB10Rec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
 		}
 
-		if (fullrange==0) {
+		if (changerange==0) {
 
 			if (rangemin >= rangemax) {
 				rangemin = 64;
@@ -5957,7 +6065,7 @@
 			}
 		}
 
-		if (fullrange==0) {
+		if (changerange==0) {
 			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
@@ -5982,7 +6090,7 @@
 		cudaFree(planeUnv);
 		cudaFree(planeVnv);
 	}
-	void CudaNeutralizeYUV444byRGB10(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack, int yuvin, int yuvout, int fullrange, int rangemin, int rangemax)
+	void CudaNeutralizeYUV444byRGB10(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int type, int formula, int skipblack, int yuvin, int yuvout, int changerange, int rangemin, int rangemax)
 	{
 		unsigned short* planeYnv;
 		unsigned short* planeUnv;
@@ -6017,7 +6125,7 @@
 		default: KernelYUV2RGB10Rec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
 		}
 
-		if (fullrange==0) {
+		if (changerange==0) {
 
 			if (rangemin >= rangemax) {
 				rangemin = 64;
@@ -6136,7 +6244,7 @@
 			KernelHSV2RGB10 <<<Yblocks, threads >>> (planeHSVo_Hnv, planeHSVo_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, length);
 		}
 
-		if (fullrange==0) {
+		if (changerange==0) {
 			KernelPC2TV <<<Yblocks, threads >>> (planeRnv, length);
 			KernelPC2TV <<<Yblocks, threads >>> (planeGnv, length);
 			KernelPC2TV <<<Yblocks, threads >>> (planeBnv, length);
@@ -6356,7 +6464,7 @@
 		cudaFree(planeUnv);
 		cudaFree(planeVnv);
 	}
-	void CudaBoostSaturationYUV44410(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int formula, int yuvin, int yuvout, int fullrange, int rangemin, int rangemax) {
+	void CudaBoostSaturationYUV44410(unsigned short* planeY, int planeYheight, int planeYwidth, int planeYpitch, unsigned short* planeU, int planeUheight, int planeUwidth, int planeUpitch, unsigned short* planeV, int planeVheight, int planeVwidth, int planeVpitch, int threads, int formula, int yuvin, int yuvout, int changerange, int rangemin, int rangemax) {
 		unsigned short* planeYnv;
 		unsigned short* planeUnv;
 		unsigned short* planeVnv;
@@ -6390,7 +6498,7 @@
 		default: KernelYUV2RGB10Rec709 <<<Yblocks, threads >>> (planeYnv, planeUnv, planeVnv, planeRnv, planeGnv, planeBnv, planeYwidth / 2, planeYheight, planeYwidth / 2); break;
 		}
 
-		if (fullrange==0) {
+		if (changerange==0) {
 
 			if (rangemin >= rangemax) {
 				rangemin = 64;
@@ -6439,7 +6547,7 @@
 
 		KernelHSV2RGB10 <<<Yblocks, threads >>> (planeHSV_Hnv, planeHSV_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, length);
 
-		if (fullrange==0) {
+		if (changerange==0) {
 			KernelPC2TV << <Yblocks, threads >> > (planeRnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeGnv, length);
 			KernelPC2TV << <Yblocks, threads >> > (planeBnv, length);
@@ -6587,7 +6695,7 @@
 		cudaFree(planeVnv);
 	}
 
-	void CudaNeutralizeRGB10(unsigned short* planeR, unsigned short* planeG, unsigned short* planeB, int planeheight, int planewidth, int planepitch, int threads, int type, int formula, int skipblack) {
+	void CudaNeutralizeRGB10(unsigned short* planeR, unsigned short* planeG, unsigned short* planeB, int planeheight, int planewidth, int planepitch, int threads, int type, int formula, int skipblack, int changerange, int rangemin, int rangemax) {
 
 		int length = planeheight * planewidth / 2;
 
@@ -6602,6 +6710,18 @@
 		cudaMemcpy2D(planeRnv, planewidth, planeR, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
 		cudaMemcpy2D(planeGnv, planewidth, planeG, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
 		cudaMemcpy2D(planeBnv, planewidth, planeB, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
+
+		if (changerange == 1) {
+
+			if (rangemin >= rangemax) {
+				rangemin = 64;
+				rangemax = 943;
+			}
+
+			KernelTV2PC << <rgbblocks, threads >> > (planeRnv, length, rangemin, rangemax);
+			KernelTV2PC << <rgbblocks, threads >> > (planeGnv, length, rangemin, rangemax);
+			KernelTV2PC << <rgbblocks, threads >> > (planeBnv, length, rangemin, rangemax);
+		}
 
 		Npp32f* planeHSVo_Hnv;
 		Npp32f* planeHSVo_Snv;
@@ -6710,6 +6830,12 @@
 			KernelHSV2RGB10 <<<rgbblocks, threads >>> (planeHSVo_Hnv, planeHSVo_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, length);
 		}
 
+		if (changerange == 1) {
+			KernelPC2TV << <rgbblocks, threads >> > (planeRnv, length);
+			KernelPC2TV << <rgbblocks, threads >> > (planeGnv, length);
+			KernelPC2TV << <rgbblocks, threads >> > (planeBnv, length);
+		}
+
 		cudaMemcpy2D(planeR, planepitch, planeRnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
 		cudaMemcpy2D(planeG, planepitch, planeGnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
 		cudaMemcpy2D(planeB, planepitch, planeBnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
@@ -6731,7 +6857,7 @@
 			cudaFree(planeHSV_Snv);
 		}
 	}
-	void CudaNeutralizeRGBwithLight10(unsigned short* planeR, unsigned short* planeG, unsigned short* planeB, int planeheight, int planewidth, int planepitch, int threads, int type, int formula, int skipblack)
+	void CudaNeutralizeRGBwithLight10(unsigned short* planeR, unsigned short* planeG, unsigned short* planeB, int planeheight, int planewidth, int planepitch, int threads, int type, int formula, int skipblack, int changerange, int rangemin, int rangemax)
 	{
 		int length = planeheight * planewidth / 2;
 		int rgbblocks = blocks(length, threads);
@@ -6743,6 +6869,18 @@
 		cudaMemcpy2D(planeRnv, planewidth, planeR, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
 		cudaMemcpy2D(planeGnv, planewidth, planeG, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
 		cudaMemcpy2D(planeBnv, planewidth, planeB, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
+
+		if (changerange == 1) {
+
+			if (rangemin >= rangemax) {
+				rangemin = 64;
+				rangemax = 943;
+			}
+
+			KernelTV2PC << <rgbblocks, threads >> > (planeRnv, length, rangemin, rangemax);
+			KernelTV2PC << <rgbblocks, threads >> > (planeGnv, length, rangemin, rangemax);
+			KernelTV2PC << <rgbblocks, threads >> > (planeBnv, length, rangemin, rangemax);
+		}
 
 		unsigned long long Rsum = 0, Gsum = 0, Bsum = 0;
 
@@ -6818,6 +6956,12 @@
 			}
 		}
 
+		if (changerange == 1) {
+			KernelPC2TV << <rgbblocks, threads >> > (planeRnv, length);
+			KernelPC2TV << <rgbblocks, threads >> > (planeGnv, length);
+			KernelPC2TV << <rgbblocks, threads >> > (planeBnv, length);
+		}
+
 		cudaMemcpy2D(planeR, planepitch, planeRnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
 		cudaMemcpy2D(planeG, planepitch, planeGnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
 		cudaMemcpy2D(planeB, planepitch, planeBnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
@@ -6826,7 +6970,7 @@
 		cudaFree(planeGnv);
 		cudaFree(planeBnv);
 	}
-	void CudaBoostSaturationRGB10(unsigned short* planeR, unsigned short* planeG, unsigned short* planeB, int planeheight, int planewidth, int planepitch, int threads, int formula)
+	void CudaBoostSaturationRGB10(unsigned short* planeR, unsigned short* planeG, unsigned short* planeB, int planeheight, int planewidth, int planepitch, int threads, int formula, int changerange, int rangemin, int rangemax)
 	{
 		int length = planeheight * planewidth / 2;
 		int rgbblocks = blocks(length, threads);
@@ -6840,6 +6984,19 @@
 		cudaMemcpy2D(planeRnv, planewidth, planeR, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
 		cudaMemcpy2D(planeGnv, planewidth, planeG, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
 		cudaMemcpy2D(planeBnv, planewidth, planeB, planepitch, planewidth, planeheight, cudaMemcpyHostToDevice);
+
+		if (changerange == 1) {
+
+			if (rangemin >= rangemax) {
+				rangemin = 64;
+				rangemax = 943;
+			}
+
+			KernelTV2PC << <rgbblocks, threads >> > (planeRnv, length, rangemin, rangemax);
+			KernelTV2PC << <rgbblocks, threads >> > (planeGnv, length, rangemin, rangemax);
+			KernelTV2PC << <rgbblocks, threads >> > (planeBnv, length, rangemin, rangemax);
+		}
+
 
 		Npp32f* planeHSV_Hnv;
 		Npp32f* planeHSV_Snv;
@@ -6877,6 +7034,12 @@
 		KernelRGB2HSV_S <<<rgbblocks, threads >>> (planeRnv, planeGnv, planeBnv, planeHSV_Snv, length);
 
 		KernelHSV2RGB <<<rgbblocks, threads >>> (planeHSV_Hnv, planeHSV_Snv, planeHSV_Vnv, planeRnv, planeGnv, planeBnv, length);
+
+		if (changerange == 1) {
+			KernelPC2TV << <rgbblocks, threads >> > (planeRnv, length);
+			KernelPC2TV << <rgbblocks, threads >> > (planeGnv, length);
+			KernelPC2TV << <rgbblocks, threads >> > (planeBnv, length);
+		}
 
 		cudaMemcpy2D(planeR, planepitch, planeRnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
 		cudaMemcpy2D(planeG, planepitch, planeGnv, planewidth, planewidth, planeheight, cudaMemcpyDeviceToHost);
